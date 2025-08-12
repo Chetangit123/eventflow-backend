@@ -30,7 +30,7 @@ exports.createEventManager = catchAsync(async (req, res, next) => {
             isVerified: true
         })
         .exec();
-    let template = welcomeEventManager({ name, email, password });
+    let template = welcomeEventManager({ name, email, password, role: "event_manager" });
     sendMail({
         to: email,
         subject: "Welcome to the Event Management Team 🎉",
@@ -97,6 +97,20 @@ exports.updateManagerProfile = catchAsync(async (req, res, next) => {
     eventManager.phone = phone;
     await eventManager.save();
     return successRes(res, 200, true, "Event manager updated successfully", eventManager);
+});
+
+exports.deleteEventManager = catchAsync(async (req, res, next) => {
+    const managerId = req?.body?.managerId;
+    if (!managerId) return next(new AppError("Manager id is required", 400));
+    const qb = new QueryBuilder(User);
+    const eventManager = await qb.findOne({ _id: managerId, role: "event_manager" }).exec();
+    if (!eventManager) {
+        return next(new AppError("Event manager not found", 404));
+    }
+    eventManager.isDeleted = true;
+    eventManager.deletedAt = Date.now();
+    await eventManager.save();
+    return successRes(res, 200, true, "Event manager deleted successfully", eventManager);
 });
 
 

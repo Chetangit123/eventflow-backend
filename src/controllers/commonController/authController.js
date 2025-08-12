@@ -111,5 +111,19 @@ exports.changePassword = catchAsync(async (req, res, next) => {
     user.passwordChangedAt = Date.now();
     await user.save();
 
-    return successRes(res, 200, true, "Password changed successfully", user);
+    return successRes(res, 200, true, "Password changed successfully", null);
+});
+
+exports.forgetPassowrd = catchAsync(async (req, res, next) => {
+    const email = req?.body?.email;
+    console.log(req, "reqqqqq")
+    if (!email) return next(new AppError("Email is required", 400));
+    const user = await UserService.forgetPassowrd(email);
+    return successRes(res, 200, true, "Password reset link sent successfully", null);
+});
+
+exports.resetPassword = catchAsync(async (req, res, next) => {
+    const { token, password } = req.body;
+    const user = await UserService.resetPassword(token, password);
+    return successRes(res, 200, true, "Password reset successfully", null);
 });

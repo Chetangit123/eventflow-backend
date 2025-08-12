@@ -1,4 +1,4 @@
-module.exports = ({ name, email, password }) => {
+module.exports = ({ name, email, password, role }) => {
     console.log(name, email, password, "             11111111111");
     return `
     <!DOCTYPE html>
@@ -59,7 +59,7 @@ module.exports = ({ name, email, password }) => {
         <div class="container">
             <h2>Welcome to Our Event Management Team 🎉</h2>
             <p>Hi <strong>${name}</strong>,</p>
-            <p>We’re excited to have you on board as our new <strong>Event Manager</strong>! Below are your login credentials:</p>
+            <p>We’re excited to have you on board as our new <strong>${role === 'event_manager' ? 'Event Manager' : 'Gatekeeper'}</strong>! Below are your login credentials:</p>
             
             <div class="credentials">
                 <p><strong>Email:</strong> ${email}</p>

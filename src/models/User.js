@@ -62,6 +62,8 @@ const UserSchema = new Schema({
     },
     verificationToken: String,
     verificationExpires: Date,
+    forgetPasswordToken: String,
+    forgetPasswordExpires: Date,
     profilePic: {
         type: String,
         trim: true,

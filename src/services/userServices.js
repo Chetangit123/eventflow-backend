@@ -1,5 +1,6 @@
 // src/services/userService.js
-const { EMAIL_VERIFICATION_LINK } = require("../config/env");
+const { EMAIL_VERIFICATION_LINK, FORGET_PASSWORD_LINK } = require("../config/env");
+const { ForgotPasswordTemplate } = require("../emailTemplates/forgetPasswordTemplate");
 const { EmailVerificationTemplate } = require("../emailTemplates/userVerificationTemplate");
 const User = require("../models/User");
 const AppError = require("../utils/AppError");
@@ -57,8 +58,6 @@ class UserService {
 
         return user;
     }
-
-
     static async verifyEmailWithLink(token) {
         const user = await User.findOne({ verificationToken: token });
         if (!user) throw new AppError("Invalid token", 400);
@@ -69,13 +68,41 @@ class UserService {
         await user.save();
         return user;
     }
-
     static async getUserById(userId) {
         const user = await User.findById(userId).populate({
             path: "addresses",
             select: "street city state zipCode country"
         });
         if (!user) throw new AppError("User not found", 404);
+        return user;
+    }
+    static async forgetPassowrd(email) {
+        let qb = new QueryBuilder(User);
+        let user = await qb.findOne({ email }).exec();
+        if (!user) throw new AppError("User not found", 404);
+        const token = signToken(user._id, user.email);
+        user.forgetPasswordToken = token;
+        user.forgetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+        await user.save();
+        const verificationLink = `${FORGET_PASSWORD_LINK}/${token}`;
+        const template = ForgotPasswordTemplate(user.name, verificationLink);
+        sendMail({
+            to: user.email,
+            subject: "Password Reset",
+            template
+        });
+        return user;
+    }
+
+    static async resetPassword(token, password) {
+        let qb = new QueryBuilder(User);
+        let user = await qb.findOne({ forgetPasswordToken: token }).exec();
+        if (!user) throw new AppError("Invalid token", 400);
+        if (user.forgetPasswordExpires < Date.now()) throw new AppError("Token expired", 400);
+        user.passwordHash = password;
+        user.forgetPasswordToken = null;
+        user.forgetPasswordExpires = null;
+        await user.save();
         return user;
     }
 

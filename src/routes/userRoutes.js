@@ -11,6 +11,8 @@ router.post('/login-user', authController.loginUser);
 router.get('/get-user-profile', protect('user'), authController.getUserProfile);
 router.put('/update-user-profile', protect('user'), authController.updateUserProfile);
 router.put('/change-password', protect('user'), authController.changePassword);
+router.post('/forget-password', authController.forgetPassowrd);
+router.put('/reset-password', authController.resetPassword);
 router.post('/create-address', protect('user'), userAuthController.createAddress);
 
 module.exports = router;

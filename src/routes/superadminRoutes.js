@@ -3,6 +3,7 @@ const router = express.Router();
 const userController = require("../controllers/userController/userAuthController");
 const authController = require("../controllers/commonController/authController");
 const adminManagerController = require("../controllers/adminController/adminManagerController");
+const adminGatekeeperController = require("../controllers/adminController/adminGatekeeperController");
 const { protect } = require("../utils/jwt");
 
 //roles : superadmin, event_manager, gatekeeper
@@ -11,6 +12,8 @@ router.post('/login-admin', authController.loginUser);
 router.get('/get-admin-profile', protect('superadmin', 'event_manager', 'gatekeeper'), authController.getUserProfile);
 router.put('/update-admin-profile', protect('superadmin', 'event_manager', 'gatekeeper'), authController.updateUserProfile);
 router.put('/change-password', protect('superadmin', 'event_manager', 'gatekeeper'), authController.changePassword);
+router.post('/forget-password', authController.forgetPassowrd);
+router.put('/reset-password', authController.resetPassword);
 
 /**  Event-Manager Management Routes */
 
@@ -19,6 +22,14 @@ router.get('/get-all-event-managers', protect('superadmin'), adminManagerControl
 router.get('/get-event-manager', protect('superadmin'), adminManagerController.getEventManager);
 router.put('/block-unblock-event-manager', protect('superadmin'), adminManagerController.blockUnblockManager);
 router.put('/update-event-manager', protect('superadmin'), adminManagerController.updateManagerProfile);
-// router.delete('/delete-event-manager/:id', protect('superadmin'), adminManagerController.deleteEventManager);
+router.put('/delete-event-manager', protect('superadmin'), adminManagerController.deleteEventManager);
+
+/* Gatekeeper Management Routes */
+router.post('/create-gatekeeper', protect('superadmin'), adminGatekeeperController.createGatekeeper);
+// router.get('/get-all-gatekeepers', protect('superadmin'), userController.getAllGatekeepers);
+// router.get('/get-gatekeeper', protect('superadmin'), userController.getGatekeeper);
+// router.put('/block-unblock-gatekeeper', protect('superadmin'), userController.blockUnblockGatekeeper);
+// router.put('/update-gatekeeper', protect('superadmin'), userController.updateGatekeeperProfile);
+// router.put('/delete-gatekeeper', protect('superadmin'), userController.deleteGatekeeper);
 
 module.exports = router;

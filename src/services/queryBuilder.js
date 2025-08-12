@@ -60,7 +60,7 @@ class QueryBuilder {
 
     // ---------- DELETE ----------
     delete(filter) {
-        this.query = this.model.findOneAndDelete(filter);
+        this.query = this.model.findOneAndUpdate(filter, { isDeleted: true, deletedAt: new Date() }, { new: true });
         return this;
     }
 
