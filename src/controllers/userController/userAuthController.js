@@ -43,7 +43,7 @@ exports.loginUser = catchAsync(async (req, res, next) => {
 
     if (user.isBlocked) return next(new AppError("Your account has been blocked", 401));
 
-    const token = signToken(user._id, user.email);
+    const token = signToken(user._id, user.email, user.role);
 
     return successRes(res, 200, true, "Login successful", { user, token });
 });
@@ -78,6 +78,38 @@ exports.getUserProfile = catchAsync(async (req, res, next) => {
     }
 
     return successRes(res, 200, true, "User profile retrieved successfully", user[0]);
+});
+
+exports.updateUserProfile = catchAsync(async (req, res, next) => {
+    const userId = req?.user?.id;
+    const { name, email, phone } = req.body;
+
+    if (!userId) return next(new AppError("User not found", 404));
+
+    const user = await User.findByIdAndUpdate(userId, { name, email, phone }, { new: true });
+
+    return successRes(res, 200, true, "User profile updated successfully", user);
+});
+
+exports.changePassword = catchAsync(async (req, res, next) => {
+    const userId = req?.user?.id;
+    const { currentPassword, newPassword } = req.body;
+
+    if (!userId) return next(new AppError("User not found", 404));
+
+    const user = await User.findById(userId).select("+passwordHash");
+
+    if (!user) return next(new AppError("User not found", 404));
+
+    if (!(await user.comparePassword(currentPassword))) {
+        return next(new AppError("Current password is incorrect", 401));
+    }
+
+    user.passwordHash = newPassword;
+    user.passwordChangedAt = Date.now();
+    await user.save();
+
+    return successRes(res, 200, true, "Password changed successfully", user);
 });
 
 
