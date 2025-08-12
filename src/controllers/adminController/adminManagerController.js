@@ -62,5 +62,42 @@ exports.getAllEventManagers = catchAsync(async (req, res, next) => {
     });
 });
 
+exports.getEventManager = catchAsync(async (req, res, next) => {
+    const { managerId } = req.query;
+    const qb = new QueryBuilder(User);
+    const eventManager = await qb.findOne({ _id: managerId, role: "event_manager" }).exec();
+    if (!eventManager) {
+        return next(new AppError("Event manager not found", 404));
+    }
+    return successRes(res, 200, true, "Event manager retrieved successfully", eventManager);
+});
+
+exports.blockUnblockManager = catchAsync(async (req, res, next) => {
+    const { managerId } = req.body;
+    const qb = new QueryBuilder(User);
+    const eventManager = await qb.findOne({ _id: managerId, role: "event_manager" }).exec();
+    if (!eventManager) {
+        return next(new AppError("Event manager not found", 404));
+    }
+    eventManager.isBlocked = !eventManager.isBlocked;
+    await eventManager.save();
+    return successRes(res, 200, true, "Event manager updated successfully", eventManager);
+});
+
+exports.updateManagerProfile = catchAsync(async (req, res, next) => {
+    const { name, email, phone, managerId } = req.body;
+    const qb = new QueryBuilder(User);
+    const eventManager = await qb.findOne({ _id: managerId, role: "event_manager" }).exec();
+    if (!eventManager) {
+        return next(new AppError("Event manager not found", 404));
+    }
+    if (eventManager.isBlocked) return next(new AppError("This account is blocked", 401));
+    eventManager.name = name;
+    eventManager.email = email;
+    eventManager.phone = phone;
+    await eventManager.save();
+    return successRes(res, 200, true, "Event manager updated successfully", eventManager);
+});
+
 
 

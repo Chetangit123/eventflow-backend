@@ -16,8 +16,9 @@ router.put('/change-password', protect('superadmin', 'event_manager', 'gatekeepe
 
 router.post('/create-event-manager', protect('superadmin'), adminManagerController.createEventManager);
 router.get('/get-all-event-managers', protect('superadmin'), adminManagerController.getAllEventManagers);
-// router.get('/get-event-manager/:id', protect('superadmin'), adminManagerController.getEventManager);
-// router.put('/update-event-manager/:id', protect('superadmin'), adminManagerController.updateEventManager);
+router.get('/get-event-manager', protect('superadmin'), adminManagerController.getEventManager);
+router.put('/block-unblock-event-manager', protect('superadmin'), adminManagerController.blockUnblockManager);
+router.put('/update-event-manager', protect('superadmin'), adminManagerController.updateManagerProfile);
 // router.delete('/delete-event-manager/:id', protect('superadmin'), adminManagerController.deleteEventManager);
 
 module.exports = router;

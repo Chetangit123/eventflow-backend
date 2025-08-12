@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const buildAggregationPipeline = require("../../utils/buildAggregationPipeline");
 const UserService = require("../../services/userServices");
 const { default: mongoose } = require("mongoose");
+const QueryBuilder = require("../../services/queryBuilder");
 
 exports.createUser = catchAsync(async (req, res, next) => {
     const { name, email, phone, password } = req.body;
@@ -34,8 +35,8 @@ exports.loginUser = catchAsync(async (req, res, next) => {
         return next(new AppError("Please provide email and password", 400));
     }
 
-    const user = await User.findOne({ email }).select("+passwordHash");
-    console.log(user, "user")
+    const qb = new QueryBuilder(User);
+    const user = await qb.findOne({ email }).select('+passwordHash').exec();
     if (!user || !(await user.comparePassword(password))) {
         return next(new AppError("Invalid email or password", 401));
     }

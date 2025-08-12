@@ -62,6 +62,8 @@ class UserService {
     static async verifyEmailWithLink(token) {
         const user = await User.findOne({ verificationToken: token });
         if (!user) throw new AppError("Invalid token", 400);
+        if (user.isVerified) throw new AppError("Email already verified", 400);
+        if (user.isBlocked) throw new AppError("Your account has been blocked", 401);
         user.isVerified = true;
         user.verificationToken = null;
         await user.save();
