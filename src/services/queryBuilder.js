@@ -1,12 +1,22 @@
 class QueryBuilder {
-    constructor(model) {
+    constructor(model, includeDeleted = false) {
         this.model = model;
         this.query = null;
+        this.includeDeleted = includeDeleted;
+        this.filterConditions = {}; // countDocuments ke liye store karenge
     }
 
     // ---------- READ ----------
     filter(fields = {}) {
-        this.query = this.model.find(fields);
+        // Deleted ko handle karo
+        this.filterConditions = this.includeDeleted ? fields : { isDeleted: false, ...fields };
+        this.query = this.model.find(this.filterConditions);
+        return this;
+    }
+
+    findOne(fields = {}) {
+        this.filterConditions = this.includeDeleted ? fields : { isDeleted: false, ...fields };
+        this.query = this.model.findOne(this.filterConditions);
         return this;
     }
 
@@ -29,6 +39,11 @@ class QueryBuilder {
     aggregate(pipeline = []) {
         this.query = this.model.aggregate(pipeline);
         return this;
+    }
+
+    // ---------- COUNT ----------
+    async count() {
+        return await this.model.countDocuments(this.filterConditions);
     }
 
     // ---------- CREATE ----------

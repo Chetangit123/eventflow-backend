@@ -49,7 +49,7 @@ class UserService {
         const template = EmailVerificationTemplate(user.name, verificationLink);
 
         // 5️⃣ Send verification email
-        await sendMail({
+        sendMail({
             to: user.email,
             subject: "Email Verification",
             template

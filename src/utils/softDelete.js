@@ -10,14 +10,6 @@ const softDeletePlugin = (schema, options = {}) => {
         this.deletedAt = new Date();
         return this.save();
     };
-
-    schema.statics.findAlive = function (conditions = {}) {
-        return this.find({ isDeleted: false, ...conditions });
-    };
-
-    schema.statics.findOneAlive = function (conditions = {}) {
-        return this.findOne({ isDeleted: false, ...conditions });
-    };
 };
 
 module.exports = softDeletePlugin;

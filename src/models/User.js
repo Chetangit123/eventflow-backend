@@ -48,6 +48,10 @@ const UserSchema = new Schema({
         enum: ['user', 'superadmin', 'event_manager', 'gatekeeper'],
         default: 'user'
     },
+    permissions: {
+        type: [String], // e.g. ["event:view", "ticket:create"]
+        default: []
+    },
     isVerified: { type: Boolean, default: false },
     isBlocked: { type: Boolean, default: false },
     passwordChangedAt: { type: Date },
@@ -75,10 +79,6 @@ const UserSchema = new Schema({
         default: 'email'
     }
 }, { timestamps: true });
-
-// Unique indexes
-UserSchema.index({ email: 1 }, { unique: true, sparse: true });
-UserSchema.index({ phone: 1 }, { unique: true, sparse: true });
 
 // ✅ Hash password before save
 UserSchema.pre('save', async function (next) {
