@@ -8,7 +8,17 @@ const EventSchema = new Schema({
     slug: { type: String, required: true, unique: true }, // SEO friendly URL
     description: String,
     venueName: String,
-    address: { type: Schema.Types.ObjectId, ref: 'Address' },
+    address: {
+        address: String,
+        landmark: String,
+        city: String,
+        state: String,
+        pincode: String,
+        country: String,
+        maplink: String,
+        lat: Number,
+        lng: Number
+    },
     images: [String],
     banner: String,
     startDate: { type: Date, required: true }, // ✅ Event start date
