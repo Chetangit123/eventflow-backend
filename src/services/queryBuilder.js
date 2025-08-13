@@ -30,6 +30,25 @@ class QueryBuilder {
         return this;
     }
 
+    search(searchText = "", keys = []) {
+        if (!searchText || !Array.isArray(keys) || keys.length === 0) return this;
+        console.log(searchText, keys);
+
+        const searchRegex = new RegExp(searchText, "i");
+
+        const searchConditions = {
+            $or: keys.map(key => ({ [key]: searchRegex }))
+        };
+        console.log(searchConditions, "searchConditions");
+        // Merge existing filter conditions with search conditions using $and
+        const finalConditions = {
+            $and: [this.filterConditions, searchConditions]
+        };
+        console.log(finalConditions, "finalConditions");
+        this.query = this.model.find(finalConditions);
+        return this;
+    }
+
     paginate(page = 1, limit = 10) {
         const skip = (page - 1) * limit;
         this.query = this.query.skip(skip).limit(limit);

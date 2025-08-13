@@ -90,3 +90,13 @@ exports.deleteGatekeeper = catchAsync(async (req, res, next) => {
     await gatekeeper.save();
     return successRes(res, 200, true, "Gatekeeper deleted successfully", gatekeeper);
 });
+
+exports.searchGateKeeper = catchAsync(async (req, res, next) => {
+    const { search } = req.query;
+    console.log(search, "search");
+    const qb = new QueryBuilder(User)
+        .filter({ role: "gatekeeper" })
+        .search(search, ["name", "email", "phone"]);
+    const eventManagers = await qb.exec();
+    return successRes(res, 200, true, "Event managers retrieved successfully", eventManagers);
+});

@@ -113,5 +113,15 @@ exports.deleteEventManager = catchAsync(async (req, res, next) => {
     return successRes(res, 200, true, "Event manager deleted successfully", eventManager);
 });
 
+exports.searchEventManager = catchAsync(async (req, res, next) => {
+    const { search } = req.query;
+    console.log(search, "search");
+    const qb = new QueryBuilder(User)
+        .filter({ role: "event_manager" })
+        .search(search, ["name", "email", "phone"]);
+    const eventManagers = await qb.exec();
+    return successRes(res, 200, true, "Event managers retrieved successfully", eventManagers);
+});
+
 
 
