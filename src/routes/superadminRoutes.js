@@ -26,10 +26,10 @@ router.put('/delete-event-manager', protect('superadmin'), adminManagerControlle
 
 /* Gatekeeper Management Routes */
 router.post('/create-gatekeeper', protect('superadmin'), adminGatekeeperController.createGatekeeper);
-// router.get('/get-all-gatekeepers', protect('superadmin'), userController.getAllGatekeepers);
-// router.get('/get-gatekeeper', protect('superadmin'), userController.getGatekeeper);
-// router.put('/block-unblock-gatekeeper', protect('superadmin'), userController.blockUnblockGatekeeper);
-// router.put('/update-gatekeeper', protect('superadmin'), userController.updateGatekeeperProfile);
-// router.put('/delete-gatekeeper', protect('superadmin'), userController.deleteGatekeeper);
+router.get('/get-all-gatekeepers', protect('superadmin'), adminGatekeeperController.getAllGatekeepers);
+router.get('/get-gatekeeper', protect('superadmin'), adminGatekeeperController.getGatekeeper);
+router.put('/block-unblock-gatekeeper', protect('superadmin'), adminGatekeeperController.blockUnblockGatekeeper);
+router.put('/update-gatekeeper', protect('superadmin'), adminGatekeeperController.updateGatekeeperProfile);
+router.put('/delete-gatekeeper', protect('superadmin'), adminGatekeeperController.deleteGatekeeper);
 
 module.exports = router;

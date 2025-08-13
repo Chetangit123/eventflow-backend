@@ -79,7 +79,8 @@ const UserSchema = new Schema({
         type: String,
         enum: ['email', 'google'],
         default: 'email'
-    }
+    },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
 // ✅ Hash password before save

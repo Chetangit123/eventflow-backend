@@ -14,7 +14,7 @@ const QueryBuilder = require("./queryBuilder");
 class SuperAdminServices {
 
     //gatekeeper management
-    static async createGatekeeper({ name, email, phone, password }) {
+    static async createGatekeeper({ name, email, phone, password, creatorId }) {
         let qb = new QueryBuilder(User);
         let existingUser = await qb.findOne({ email }).exec();
         if (existingUser) {
@@ -27,7 +27,8 @@ class SuperAdminServices {
                 phone,
                 passwordHash: password,
                 role: "gatekeeper",
-                isVerified: true
+                isVerified: true,
+                createdBy: creatorId
             })
             .exec();
 
