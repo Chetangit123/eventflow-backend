@@ -93,7 +93,6 @@ exports.deleteGatekeeper = catchAsync(async (req, res, next) => {
 
 exports.searchGateKeeper = catchAsync(async (req, res, next) => {
     const { search } = req.query;
-    console.log(search, "search");
     const qb = new QueryBuilder(User)
         .filter({ role: "gatekeeper" })
         .search(search, ["name", "email", "phone"]);

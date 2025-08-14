@@ -116,7 +116,6 @@ exports.changePassword = catchAsync(async (req, res, next) => {
 
 exports.forgetPassowrd = catchAsync(async (req, res, next) => {
     const email = req?.body?.email;
-    console.log(req, "reqqqqq")
     if (!email) return next(new AppError("Email is required", 400));
     const user = await UserService.forgetPassowrd(email);
     return successRes(res, 200, true, "Password reset link sent successfully", null);

@@ -5,7 +5,7 @@ const softDelete = require('../utils/softDelete');
 
 const EventSchema = new Schema({
     title: { type: String, required: true },
-    slug: { type: String, required: true, unique: true }, // SEO friendly URL
+    slug: { type: String }, // SEO friendly URL
     description: String,
     venueName: String,
     address: {
