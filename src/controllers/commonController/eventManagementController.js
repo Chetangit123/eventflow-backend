@@ -37,8 +37,8 @@ exports.getAllEvents = catchAsync(async (req, res, next) => {
 
 //get event by is with sessions
 exports.getEvent = catchAsync(async (req, res, next) => {
-    const { eventId } = req.query;
-    console.log(eventId, "eventId");
+    const eventId = req.query?.eventId;
+    if (!eventId) return next(new AppError("Event id is required", 400));
     const qb = new QueryBuilder(Event);
     qb.aggregate([
         {
@@ -58,6 +58,25 @@ exports.getEvent = catchAsync(async (req, res, next) => {
 
     return successRes(res, 200, true, "Event retrieved successfully", event);
 });
+
+exports.changeEventStatus = catchAsync(async (req, res, next) => {
+    const eventId = req.body?.eventId;
+    const isActive = req.body?.isActive;
+    if (!eventId) return next(new AppError("Event id is required", 400));
+    if (![true, false].includes(isActive)) return next(new AppError("Invalid isActive value", 400));
+    let qb = new QueryBuilder(Event);
+    const event = await qb.findOne({ _id: eventId }).exec();
+    if (!event) {
+        return next(new AppError("Event not found", 404));
+    }
+    event.isActive = isActive;
+    await event.save();
+    return successRes(res, 200, true, "Event status updated successfully", null);
+})
+
+exports.deleteEvent = catchAsync(async (req, res, next) => {
+
+})
 
 exports.createEventSession = catchAsync(async (req, res, next) => {
     const createdBy = req.user._id;
