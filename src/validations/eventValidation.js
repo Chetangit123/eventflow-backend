@@ -31,15 +31,21 @@ const createEvent = Joi.object({
         }),
 });
 
-// ✅ Example: Create Event Session Validation
-const createEventSession = Joi.object({
-    eventId: Joi.string().required(),
-    sessionName: Joi.string().min(3).max(100).required(),
-    startTime: Joi.date().required(),
-    endTime: Joi.date().required().min(Joi.ref("startTime")),
-    speaker: Joi.string().allow("", null),
-    description: Joi.string().allow("", null)
-});
+// ✅ Create Event Session Validation (Array only)
+const createEventSession = Joi.array().items(
+    Joi.object({
+        event: Joi.string().required(),
+        specialNameOfDay: Joi.string().required(),
+        date: Joi.date().required(),
+        startTime: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).required(), // HH:mm
+        endTime: Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/).required(),
+        pricePerTicket: Joi.number().positive().required(),
+        currency: Joi.string().default("INR"),
+        totalCapacity: Joi.number().positive().required(),
+        remainingCapacity: Joi.number().positive().required(),
+        status: Joi.string().valid("scheduled", "cancelled", "completed").default("scheduled")
+    })
+).min(1).required();
 
 const eventValidation = {
     createEvent,

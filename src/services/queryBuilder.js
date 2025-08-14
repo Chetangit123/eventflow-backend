@@ -56,6 +56,7 @@ class QueryBuilder {
     }
 
     aggregate(pipeline = []) {
+        console.log(pipeline, "pipeline");
         this.query = this.model.aggregate(pipeline);
         return this;
     }
