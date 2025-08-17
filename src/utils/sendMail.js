@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
 });
 
 
-async function sendMail({ to, subject, template, attachments }) {
+async function sendMail({ to, subject, text, template, attachments }) {
     try {
         // Replace placeholders in template
         const htmlContent = template;
@@ -20,6 +20,7 @@ async function sendMail({ to, subject, template, attachments }) {
             from: `"Tal Events" <${process.env.SMTP_USER || "pchetan839@gmail.com"}>`,
             to,
             subject,
+            text,
             html: htmlContent,
             attachments, // optional: for PDFs, images, etc.
         };

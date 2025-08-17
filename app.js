@@ -8,6 +8,7 @@ const notFound = require("./src/middlewares/notFound");
 const globalErrorHandler = require("./src/middlewares/errorHandler");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./src/config/swagger");
+const path = require("path");
 
 const app = express();
 
@@ -26,12 +27,14 @@ app.use(express.json());
 
 // Optional: if you're using URL-encoded forms too
 app.use(express.urlencoded({ extended: true }));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // ✅ Patch: Clone req.query before sanitization (avoids error)
 app.use((req, res, next) => {
     req.query = { ...req.query };
     next();
 });
+
 
 
 // Rate limiter to prevent abuse
