@@ -4,7 +4,12 @@ const userController = require("../controllers/userController/userAuthController
 const authController = require("../controllers/commonController/authController");
 const adminManagerController = require("../controllers/adminController/adminManagerController");
 const adminGatekeeperController = require("../controllers/adminController/adminGatekeeperController");
+const adminProductController = require("../controllers/adminController/adminProductController");
+const saleProductValidation = require("../validations/saleProductValidation");
+const adminCategoryController = require("../controllers/adminController/adminCategoryController");
 const { protect } = require("../utils/jwt");
+const { validateBody, validateQuery } = require("../middlewares/validate");
+const categoryValidation = require("../validations/categoryValidation");
 
 //roles : superadmin, event_manager, gatekeeper
 
@@ -33,5 +38,16 @@ router.put('/block-unblock-gatekeeper', protect('superadmin'), adminGatekeeperCo
 router.put('/update-gatekeeper', protect('superadmin'), adminGatekeeperController.updateGatekeeperProfile);
 router.put('/delete-gatekeeper', protect('superadmin'), adminGatekeeperController.deleteGatekeeper);
 router.get('/search-gatekeeper', protect('superadmin'), adminGatekeeperController.searchGateKeeper);
+
+/** Category Management */
+router.post('/create-category', protect('superadmin'), validateBody(categoryValidation.createCategoryValidation), adminCategoryController.createCategory);
+router.get('/get-categories', protect('superadmin'), adminCategoryController.getCategories);
+router.get('/get-category', protect('superadmin'), validateQuery(categoryValidation.getCategoryValidation), adminCategoryController.getCategory);
+router.put('/update-category', protect('superadmin'), validateBody(categoryValidation.updateCategoryValidation), adminCategoryController.updateCategory);
+router.put('/delete-category', protect('superadmin'), validateBody(categoryValidation.deleteCategoryValidation), adminCategoryController.deleteCategory);
+
+/** Product Management */
+
+router.post('/create-product', protect('superadmin'), validateBody(saleProductValidation.createProduct), adminProductController.createSaleProduct);
 
 module.exports = router;

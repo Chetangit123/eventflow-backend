@@ -14,5 +14,12 @@ function formatTime24to12(time24) {
     return `${hour}:${minute} ${ampm}`;
 }
 
+function capitalizeWords(str) {
+    if (!str) return "";
+    return str
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+}
 
-module.exports = { generateTicketId, formatTime24to12 };
+
+module.exports = { generateTicketId, formatTime24to12, capitalizeWords };

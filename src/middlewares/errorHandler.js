@@ -13,7 +13,7 @@ module.exports = (err, req, res, next) => {
             stack: err.stack,
         });
     }
-
+    console.log(err.name, "err.name")
     // Production Mode: Handle common Mongo & JWT errors
     if (err.name === "CastError") {
         err = new AppError("Invalid ID format", 400);
