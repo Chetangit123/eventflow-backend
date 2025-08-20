@@ -49,5 +49,7 @@ router.put('/delete-category', protect('superadmin'), validateBody(categoryValid
 /** Product Management */
 
 router.post('/create-product', protect('superadmin'), validateBody(saleProductValidation.createProduct), adminProductController.createSaleProduct);
+router.get('/get-all-sale-products', protect('superadmin'), adminProductController.getAllSalesProducts);
+router.get('/get-sales-product-by-id', protect('superadmin'), adminProductController.getSaleProductById);
 
 module.exports = router;
