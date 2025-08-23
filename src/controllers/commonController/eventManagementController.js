@@ -5,6 +5,7 @@ const QueryBuilder = require("../../services/queryBuilder");
 const catchAsync = require("../../utils/catchAsync");
 const { successRes } = require("../../utils/responseFormatter");
 const AppError = require("../../utils/AppError");
+const GatekeeperScan = require("../../models/GatekeeperScan");
 
 exports.createEvent = catchAsync(async (req, res, next) => {
     const { title, slug, description, venueName, address, images, banner, startDate, endDate, createdBy } = req.body;
@@ -293,4 +294,96 @@ exports.changeEventSessionStatus = catchAsync(async (req, res, next) => {
     await session.save();
     return successRes(res, 200, true, "Event session status updated successfully", session);
 })
+
+/** Get Gatekeeper Scan History */
+
+exports.getGatekeeperScannedHistory = catchAsync(async (req, res, next) => {
+    const gatekeeperId = req.query?.gatekeeperId;
+
+    const {
+        eventId,
+        sessionId,
+        search,
+        result,
+        page = 1,
+        limit = 10,
+        sortBy = "scannedAt",
+        sortOrder = "desc"
+    } = req.query;
+
+    const filters = {};
+    if (gatekeeperId) {
+        filters.gatekeeper = gatekeeperId;
+    }
+
+    // 🎯 event/session filter
+    if (eventId) filters["event"] = eventId;
+    if (sessionId) filters["eventSession"] = sessionId;
+
+    // 🎯 search filter
+    if (search) {
+        filters.ticketId = { $regex: search, $options: "i" };
+    }
+
+    // 🎯 result filter mapping
+    if (result) {
+        const resultMap = {
+            valid: "valid",
+            invalid: "not_found",
+            already_used: "already_scanned"
+        };
+        filters.result = resultMap[result] || result;
+    }
+
+    // sorting & pagination
+    const sort = {};
+    sort[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const perPage = parseInt(limit);
+
+    // 🔎 fetch scans
+    const scans = await GatekeeperScan.find(filters)
+        .populate({
+            path: "eventSession",
+            select: "specialNameOfDay date startTime endTime"
+        })
+        .populate({
+            path: "ticketRef",
+            select: "attendeeName", // jo fields chahiye wo select kar
+        })
+        .populate({
+            path: "event",
+            select: "title"
+        })
+        .populate({
+            path: "gatekeeper",
+            select: "name"
+        })
+        .sort(sort)
+        .skip(skip)
+        .limit(perPage)
+        .lean();
+
+    // ✅ safe formatting: ticketRef missing hoga to null inject karo
+    const formattedScans = scans.map(scan => ({
+        ...scan,
+        ticketRef: scan.ticketRef
+            ? scan.ticketRef
+            : {
+                attendeeName: null,
+                status: "invalid_ticket"
+            }
+    }));
+
+    const total = await GatekeeperScan.countDocuments(filters);
+
+    return successRes(res, 200, true, "Scanned history fetched", {
+        totalDocument: total,
+        page: parseInt(page),
+        limit: perPage,
+        totalPages: Math.ceil(total / perPage),
+        scans: formattedScans
+    });
+});
 

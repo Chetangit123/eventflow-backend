@@ -18,6 +18,10 @@ router.get('/get-session-by-id', protect('superadmin', 'event_manager'), eventMa
 router.put('/delete-event-session', protect('superadmin', 'event_manager'), eventManagementController.deleteEventSession);
 router.put('/change-event-session-status', protect('superadmin', 'event_manager'), eventManagementController.changeEventSessionStatus);
 
+/** Scanned History */
+//
+router.get('/get-gatekeeper-scanned-history', protect('superadmin', 'event_manager'), eventManagementController.getGatekeeperScannedHistory);
+
 
 
 module.exports = router;
