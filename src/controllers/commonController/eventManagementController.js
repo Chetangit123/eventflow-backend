@@ -311,7 +311,7 @@ exports.getGatekeeperScannedHistory = catchAsync(async (req, res, next) => {
         sortOrder = "desc"
     } = req.query;
 
-    const filters = {};
+    const filters = { isDeleted: false };
     if (gatekeeperId) {
         filters.gatekeeper = gatekeeperId;
     }

@@ -170,7 +170,7 @@ exports.getScannedHistory = catchAsync(async (req, res, next) => {
         sortOrder = "desc"
     } = req.query;
 
-    const filters = { gatekeeper: gatekeeperId };
+    const filters = { gatekeeper: gatekeeperId, isDeleted: false };
 
     // 🎯 event/session filter
     if (eventId) filters["event"] = eventId;
