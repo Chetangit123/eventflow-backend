@@ -1,5 +1,4 @@
 module.exports = ({ name, email, password, role }) => {
-    console.log(name, email, password, "             11111111111");
     return `
     <!DOCTYPE html>
     <html>

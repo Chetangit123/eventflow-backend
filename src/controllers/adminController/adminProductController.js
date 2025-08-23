@@ -41,7 +41,6 @@ exports.getAllSalesProducts = catchAsync(async (req, res, next) => {
 
 exports.getSaleProductById = catchAsync(async (req, res, next) => {
     const { productId } = req.query;
-    console.log(productId, "productId");
     if (!productId) return next(new AppError("Product id is required", 400));
     const qb = new QueryBuilder(ProductSale);
     const product = await qb.aggregate([
@@ -59,7 +58,6 @@ exports.getSaleProductById = catchAsync(async (req, res, next) => {
             }
         }
     ]).exec();
-    console.log(product, "product");
     if (!product || product.length === 0) {
         return next(new AppError("Product not found", 404));
     }

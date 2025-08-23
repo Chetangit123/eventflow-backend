@@ -115,7 +115,6 @@ exports.deleteEventManager = catchAsync(async (req, res, next) => {
 
 exports.searchEventManager = catchAsync(async (req, res, next) => {
     const { search } = req.query;
-    console.log(search, "search");
     const qb = new QueryBuilder(User)
         .filter({ role: "event_manager" })
         .search(search, ["name", "email", "phone"]);
