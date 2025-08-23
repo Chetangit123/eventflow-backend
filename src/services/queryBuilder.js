@@ -10,13 +10,16 @@ class QueryBuilder {
     filter(fields = {}) {
         // Deleted ko handle karo
         this.filterConditions = this.includeDeleted ? fields : { isDeleted: false, ...fields };
-        console.log(this.filterConditions, "this.filterConditions");
         this.query = this.model.find(this.filterConditions);
         return this;
     }
 
+    populate(path, select = "") {
+        this.query = this.query.populate(path, select);
+        return this;
+    }
+
     findOne(fields = {}) {
-        console.log(fields, "fields");
         this.filterConditions = this.includeDeleted ? fields : { isDeleted: false, ...fields };
         console.log(this.filterConditions, "this.filterConditions");
         this.query = this.model.findOne(this.filterConditions);

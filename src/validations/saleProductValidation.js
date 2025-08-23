@@ -25,4 +25,28 @@ const createProduct = Joi.object({
     status: Joi.string().valid("active", "inactive", "draft").default("active")
 });
 
-module.exports = { createProduct };
+const getProductByIdValidation = Joi.object({
+    productId: Joi.string().hex().length(24).required()
+});
+
+const updateProductValidation = Joi.object({
+    productId: Joi.string().hex().length(24).required(),
+    title: Joi.string().trim().optional(),
+    description: Joi.string().allow("").optional(),
+    category: Joi.string().optional(),
+    tags: Joi.array().items(Joi.string()).optional(),
+    variants: Joi.array().items(
+        Joi.object({
+            color: Joi.string().optional(),
+            size: Joi.string().optional(),
+            price: Joi.number().positive().optional(),
+            discountPrice: Joi.number().positive().optional(),
+            stock: Joi.number().integer().min(0).optional(),
+            images: Joi.array().items(Joi.string().uri()).default([]),
+            sku: Joi.string().optional()
+        })
+    ).optional(),
+    status: Joi.string().valid("active", "inactive", "draft").optional()
+});
+
+module.exports = { createProduct, getProductByIdValidation, updateProductValidation };

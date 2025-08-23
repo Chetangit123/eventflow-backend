@@ -65,3 +65,27 @@ exports.getSaleProductById = catchAsync(async (req, res, next) => {
     }
     return successRes(res, 200, true, "Product retrieved successfully", product);
 });
+
+exports.updateSaleProduct = catchAsync(async (req, res, next) => {
+    const { productId } = req.body;
+    if (!productId) return next(new AppError("Product id is required", 400));
+    const qb = new QueryBuilder(ProductSale);
+    const product = await qb.findOne({ _id: productId }).exec();
+    if (!product) {
+        return next(new AppError("Product not found", 404));
+    }
+    if (req.body.category) {
+        let qb = new QueryBuilder(Category);
+        let findCategory = await qb.findOne({ _id: req.body.category }).exec();
+        if (!findCategory) {
+            return next(new AppError("Category not found", 404));
+        }
+    }
+    product.title = req.body.title || product.title;
+    product.category = req.body.category || product.category;
+    product.description = req.body.description || product.description;
+    product.tags = req.body.tags || product.tags;
+    product.variants = req.body.variants || product.variants;
+    await product.save();
+    return successRes(res, 200, true, "Product updated successfully", product);
+});

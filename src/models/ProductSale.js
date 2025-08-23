@@ -9,7 +9,7 @@ const VariantSchema = new Schema({
     size: { type: String, required: true },    // e.g. "M", "L"
     sku: { type: String, unique: true },
     price: { type: Number, required: true },
-    discountPrice: Number,
+    discountPrice: { type: Number, default: 0 },
     stock: { type: Number, default: 0 },
     images: [String]
 }, { _id: true });

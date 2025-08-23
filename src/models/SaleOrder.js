@@ -5,11 +5,20 @@ const softDelete = require('../utils/softDelete');
 
 const OrderItemSchema = new Schema({
     product: { type: Schema.Types.ObjectId, ref: 'ProductSale', required: true },
-    titleSnapshot: String,
+    variantId: { type: Schema.Types.ObjectId, required: true }, // specific variant of that product
+
+    // Snapshot (so old order doesn't break if product changes later)
+    titleSnapshot: { type: String, required: true },
+    colorSnapshot: { type: String },
+    sizeSnapshot: { type: String },
+    skuSnapshot: { type: String },
+
     qty: { type: Number, required: true },
-    priceSnapshot: { type: Number, required: true },
+    priceSnapshot: { type: Number, required: true },       // original price at time of order
+    discountPriceSnapshot: { type: Number },               // discount price at time of order
     total: { type: Number, required: true }
 }, { _id: false });
+
 
 const ShipmentSchema = new Schema({
     courier: { type: String, default: 'Bluedart' },
@@ -28,7 +37,10 @@ const SaleOrderSchema = new Schema({
     paymentMethod: { type: String, enum: ['online', 'cod'], required: true },
     paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
     shipment: ShipmentSchema,
-    orderStatus: { type: String, enum: ['placed', 'packed', 'shipped', 'delivered', 'cancelled', 'returned'], default: 'placed' }
+    orderStatus: { type: String, enum: ['placed', 'packed', 'shipped', 'delivered', 'cancelled', 'returned'], default: 'placed' },
+    notes: String,
+    cancelledAt: { type: Date, default: null },
+    cancelledBy: { type: String, enum: ['user', 'admin', 'delivery'], default: 'user' }
 }, { timestamps: true });
 
 softDelete(SaleOrderSchema);

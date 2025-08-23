@@ -4,6 +4,7 @@ const authController = require("../controllers/commonController/authController")
 const userAuthController = require("../controllers/userController/userAuthController");
 const TicketBookingController = require("../controllers/userController/ticketBookingController");
 const eventManagementController = require("../controllers/commonController/eventManagementController");
+const cartController = require("../controllers/userController/cartController");
 const { protect } = require("../utils/jwt");
 
 
@@ -28,5 +29,14 @@ router.post('/book-tickets', protect('user'), TicketBookingController.bookTicket
 // router.get('/get-all-bookings', protect('user'), TicketBookingController.getAllBookings);
 // router.get('/get-booking-by-id', protect('user'), TicketBookingController.getBookingById);
 // router.get('/get-all-events', protect('user'), TicketBookingController.getAllEvents);
+
+
+/** Cart Management */
+
+router.post('/add-to-cart', protect('user'), cartController.addToCart);
+router.get('/get-cart', protect('user'), cartController.getCart);
+router.put('/remove-item-from-cart', protect('user'), cartController.removeItemFromCart);
+router.put('/clear-cart', protect('user'), cartController.clearCart);
+router.put('/update-item-quantity', protect('user'), cartController.updateItemQuantity);
 
 module.exports = router;
