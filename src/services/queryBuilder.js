@@ -86,6 +86,12 @@ class QueryBuilder {
         return this;
     }
 
+    // ---------- SESSION ----------
+    session(session) {
+        this.query = this.query.session(session);
+        return this;
+    }
+
     // ---------- EXECUTE ----------
     async exec() {
         return await this.query;

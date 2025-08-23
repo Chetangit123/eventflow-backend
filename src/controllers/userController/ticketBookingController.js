@@ -16,17 +16,25 @@ const nodeHtmlToImage = require("node-html-to-image");
 const { thanksMailToUser } = require("../../emailTemplates/thanksMailTemplate");
 const User = require("../../models/User");
 const { formatTime24to12 } = require("../../utils/helper");
+const QueryBuilder = require("../../services/queryBuilder");
 
 
-function generateTicketId(eventCode) {
+async function generateTicketId(eventCode) {
     const year = new Date().getFullYear();
-    const randomNum = Math.floor(10000 + Math.random() * 90000);
-    return `${eventCode.toUpperCase()}-${year}-${randomNum}`;
+
+    while (true) {
+        const randomNum = Math.floor(10000 + Math.random() * 90000);
+        const ticketId = `${eventCode.toUpperCase()}-${year}-${randomNum}`;
+
+        // DB check
+        const checkDuplicate = await TicketBooking.findOne({ ticketId });
+        if (!checkDuplicate) {
+            return ticketId; // ✅ unique id mil gaya
+        }
+    }
 }
 
 const USE_PDF = false; // true => PDF, false => PNG
-//Perfect Working code for ticket generation before integrating BullMq
-
 
 exports.bookTickets = catchAsync(async (req, res, next) => {
     const start = Date.now();
@@ -82,7 +90,7 @@ exports.bookTickets = catchAsync(async (req, res, next) => {
             const tickets = [];
 
             for (const attendee of attendeeDetails) {
-                const ticketId = generateTicketId("TAAL-EVENT");
+                const ticketId = await generateTicketId("TAAL-EVENT");
                 const qrPayload = {
                     ticketId,
                     attendeeName: attendee.name,
@@ -210,55 +218,53 @@ exports.bookTickets = catchAsync(async (req, res, next) => {
     });
 });
 
+exports.getTicketBookings = catchAsync(async (req, res, next) => {
+    const userId = req?.user?.id;
+    if (!userId) return next(new AppError("User not found", 404));
 
-// const { ticketQueue } = require('../../queues/ticketQueue');
+    let qb = new QueryBuilder(TicketBooking);
 
-// exports.bookTickets = catchAsync(async (req, res, next) => {
-//     const { eventSession, event, quantity, attendeeDetails, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
-//     const userId = req.user._id;
+    // ✅ Only useful fields select karo
+    let ticketBookings = await qb
+        .filter({ user: userId })
+        .select(
+            "_id user eventSession event quantity attendeeDetails.name attendeeDetails.phone pricePerTicket totalAmount currency paymentMethod paymentStatus ticketStatus tickets.ticketId tickets.qrImage tickets.pdfPath tickets.attendeeName tickets.scanned tickets.status"
+        ).populate("event", "title description venueName address startDate endDate")
+        .populate("eventSession", "date startTime endTime")
+        .exec();
 
-//     if (!eventSession || !event || !quantity || !attendeeDetails?.length)
-//         return next(new AppError("All fields are required", 400));
+    return successRes(
+        res,
+        200,
+        true,
+        "Ticket bookings fetched successfully",
+        ticketBookings
+    );
+});
 
-//     const findUser = await User.findOne({ _id: userId, isDeleted: false });
-//     if (!findUser) return next(new AppError("User not found", 404));
+exports.getBookingById = catchAsync(async (req, res, next) => {
+    const bookingId = req?.query?.bookingId;
+    if (!bookingId) return next(new AppError("Booking ID is required", 400));
 
-//     const eventData = await Event.findOne({ _id: event, isDeleted: false });
-//     if (!eventData) return next(new AppError("Event not found", 404));
+    let qb = new QueryBuilder(TicketBooking);
 
-//     const sessionData = await EventSession.findOne({ _id: eventSession, event: event, isDeleted: false });
-//     if (!sessionData) return next(new AppError("Event session not found", 404));
+    let ticketBooking = await qb
+        .findOne({ _id: bookingId, user: req?.user?.id })
+        .populate("event", "title description venueName address startDate endDate")
+        .populate("eventSession", "date startTime endTime")
+        .exec();
 
-//     const pricePerTicket = sessionData.pricePerTicket || eventData.price || 0;
-//     const totalAmount = pricePerTicket * quantity;
+    if (!ticketBooking) return next(new AppError("Ticket booking not found", 404));
 
-//     // Create booking with pending ticketStatus
-//     const booking = await TicketBooking.create({
-//         user: userId,
-//         eventSession,
-//         event,
-//         quantity,
-//         attendeeDetails,
-//         pricePerTicket,
-//         totalAmount,
-//         paymentMethod: "razorpay",
-//         paymentStatus: "paid",
-//         ticketStatus: "pending",
-//         razorpayOrderId,
-//         razorpayPaymentId,
-//         razorpaySignature,
-//         tickets: []
-//     });
+    return successRes(
+        res,
+        200,
+        true,
+        "Ticket booking fetched successfully",
+        ticketBooking
+    );
+});
 
-//     // Add job to BullMQ queue
-//     await ticketQueue.add('generateTickets', { bookingId: booking._id }, {
-//         attempts: 3, // retry 3 times if failed
-//         backoff: { type: 'exponential', delay: 5000 }
-//     });
 
-//     res.status(201).json({
-//         success: true,
-//         message: "Booking confirmed! Tickets will be emailed shortly.",
-//         bookingId: booking._id
-//     });
-// });
+
+

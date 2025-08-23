@@ -8,6 +8,7 @@ const GatekeeperScanSchema = new Schema({
     ticketId: { type: String, required: true }, // plain ticketId or qrData reference
     ticketRef: { type: Schema.Types.ObjectId, ref: 'Ticket' },
     eventSession: { type: Schema.Types.ObjectId, ref: 'EventSession' },
+    event: { type: Schema.Types.ObjectId, ref: 'Event' },
     scannedAt: { type: Date, default: Date.now },
     result: { type: String, enum: ['valid', 'invalid', 'already_scanned', 'expired', 'not_found'], required: true },
     notes: String

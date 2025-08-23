@@ -45,7 +45,6 @@ const protect = (...allowedRoles) => {
             // ✅ Attach user to request
             req.userId = decoded.id;
             req.user = findUser;
-
             next();
         } catch (err) {
             if (err.name === "TokenExpiredError") {
