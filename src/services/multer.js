@@ -113,18 +113,18 @@ module.exports = {
     uploader,
 
     // pre-configured shortcuts
-    uploadAdminProfile: uploader("single", "files", {
-        folder: "uploads/adminProfilePicture",
+    uploadBannerImage: uploader("single", "image", {
+        folder: "uploads/eventBanners",
         fileTypes: /jpeg|jpg|png/,
     }),
 
-    uploadDeliveryDocs: uploader("array", "files", {
-        folder: "uploads/deliveryPartnerDocuments",
+    uploadEventImages: uploader("array", "images", {
+        folder: "uploads/eventImages",
         fileTypes: /jpeg|jpg|png/,
-    }, 2),
+    }, 5),
 
     uploadUserProfile: uploader("single", "image", {
-        folder: "uploads/userProfilePic",
+        folder: "uploads/userAvatar",
         fileTypes: /jpeg|jpg|png/,
     }),
 };

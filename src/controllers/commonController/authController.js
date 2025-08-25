@@ -9,6 +9,7 @@ const buildAggregationPipeline = require("../../utils/buildAggregationPipeline")
 const UserService = require("../../services/userServices");
 const { default: mongoose } = require("mongoose");
 const QueryBuilder = require("../../services/queryBuilder");
+const ENVIRONMENT = require("../../config/env");
 
 exports.createUser = catchAsync(async (req, res, next) => {
     const { name, email, phone, password } = req.body;
@@ -21,6 +22,17 @@ exports.createUser = catchAsync(async (req, res, next) => {
 
     return successRes(res, 201, true, "User created successfully", user);
 });
+
+exports.uploadAvatar = catchAsync(async (req, res, next) => {
+    let file = req.file;
+    let fileUrl = `${ENVIRONMENT.IMAGE_FILE_PATH}/userAvatar/${file.filename}`;
+    let response = {
+        ...file,
+        url: fileUrl,
+    }
+    return successRes(res, 201, true, "File uploaded successfully", response);
+});
+
 
 exports.verifyEmailWithLink = catchAsync(async (req, res, next) => {
     const { token } = req.body;

@@ -6,10 +6,12 @@ const TicketBookingController = require("../controllers/userController/ticketBoo
 const eventManagementController = require("../controllers/commonController/eventManagementController");
 const cartController = require("../controllers/userController/cartController");
 const { protect } = require("../utils/jwt");
+const { uploadUserProfile } = require("../services/multer");
 
 
 
 router.post('/create-user', authController.createUser);
+router.post('/upload-avatar', uploadUserProfile, authController.uploadAvatar);
 router.put('/verify-email-with-link', authController.verifyEmailWithLink);
 router.post('/login-user', authController.loginUser);
 router.get('/get-user-profile', protect('user'), authController.getUserProfile);

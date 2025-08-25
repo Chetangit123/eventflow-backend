@@ -6,6 +6,37 @@ const catchAsync = require("../../utils/catchAsync");
 const { successRes } = require("../../utils/responseFormatter");
 const AppError = require("../../utils/AppError");
 const GatekeeperScan = require("../../models/GatekeeperScan");
+const ENVIRONMENT = require("../../config/env.js");
+
+exports.uploadBannerImage = catchAsync(async (req, res, next) => {
+    let file = req.file;
+    let fileUrl = `${ENVIRONMENT.IMAGE_FILE_PATH}/eventBanners/${file.filename}`;
+    let response = {
+        ...file,
+        url: fileUrl,
+    }
+    return successRes(res, 201, true, "File uploaded successfully", response);
+});
+
+exports.uploadEventImages = catchAsync(async (req, res, next) => {
+    let files = req.files;
+    if (!files || files.length === 0) {
+        return successRes(res, 400, false, "No files uploaded");
+    }
+
+    let response = files.map((file) => {
+        return {
+            originalName: file.originalname,
+            fileName: file.filename,
+            mimeType: file.mimetype,
+            size: file.size,
+            url: `${ENVIRONMENT.IMAGE_FILE_PATH}/eventImages/${file.filename}`,
+        };
+    });
+
+    return successRes(res, 201, true, "Files uploaded successfully", response);
+});
+
 
 exports.createEvent = catchAsync(async (req, res, next) => {
     const { title, slug, description, venueName, address, images, banner, startDate, endDate, createdBy } = req.body;

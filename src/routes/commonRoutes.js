@@ -4,7 +4,10 @@ const eventManagementController = require("../controllers/commonController/event
 const { protect } = require("../utils/jwt");
 const { validateBody } = require("../middlewares/validate");
 const eventValidation = require("../validations/eventValidation");
+const { uploadBannerImage, uploadEventImages } = require("../services/multer");
 
+router.post('/upload-banner-image', protect('superadmin', 'event_manager'), uploadBannerImage, eventManagementController.uploadBannerImage);
+router.post('/upload-event-images', protect('superadmin', 'event_manager'), uploadEventImages, eventManagementController.uploadEventImages);
 router.post('/create-event', protect('superadmin', 'event_manager'), validateBody(eventValidation.createEvent), eventManagementController.createEvent);
 router.get('/get-all-events', protect('superadmin', 'event_manager'), eventManagementController.getAllEvents);
 router.get('/get-event', protect('superadmin', 'event_manager'), eventManagementController.getEvent);
