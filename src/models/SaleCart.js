@@ -15,7 +15,7 @@ const CartItemSchema = new Schema({
 }, { _id: false });
 
 const SaleCartSchema = new Schema({
-    user: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
+    user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     items: [CartItemSchema],
 
     // ✅ new totals

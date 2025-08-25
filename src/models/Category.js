@@ -4,7 +4,7 @@ const capitalizeWords = require("../utils/helper").capitalizeWords;
 
 const CategorySchema = new Schema(
     {
-        name: { type: String, required: true, unique: true, trim: true },
+        name: { type: String, required: true, trim: true },
         description: { type: String }, // optional detail
         icon: { type: String }, // optional - category icon/image
         parent: { type: Schema.Types.ObjectId, ref: "Category", default: null },
