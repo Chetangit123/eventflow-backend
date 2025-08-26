@@ -7,6 +7,8 @@ const { successRes } = require('../../utils/responseFormatter');
 const { loadProductAndVariant, buildOrderItemSnapshot, calcShipping, applyCouponIfAny, decrementStockAtomic, isValidId } = require('../../helper/productHelper');
 const SaleOrder = require('../../models/SaleOrder');
 const { createPaymentForOrder } = require('../commonController/checkoutController');
+const Address = require('../../models/Address');
+const QueryBuilder = require('../../services/queryBuilder');
 const parseCSV = (val) =>
     typeof val === 'string'
         ? val.split(',').map(s => s.trim()).filter(Boolean)
@@ -450,13 +452,20 @@ exports.buyNow = catchAsync(async (req, res, next) => {
     if (!['cod', 'online'].includes(String(paymentMethod))) return next(new AppError('Invalid paymentMethod', 400));
 
     const quantity = Math.max(1, Number(qty));
+    console.log(quantity, "quantity")
 
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
+        // let addressQb = new QueryBuilder(Address)
+        // let findAddress = await addressQb.findOne({ _id: addressId }).session(session).exec()
+        // if (!findAddress) {
+        //     throw new AppError('Address Not Found')
+        // }
         // 1) Load product+variant
         const { product, variant } = await loadProductAndVariant(productId, variantId, session);
-
+        console.log(product, "product")
+        console.log(variant, "variant")
         // 2) Validate stock
         if (Number(variant.stock || 0) < quantity) {
             throw new AppError('Insufficient stock', 400);
@@ -512,12 +521,7 @@ exports.buyNow = catchAsync(async (req, res, next) => {
                 paymentGateway: gateway
             });
         }
-
-        return res.status(201).json({
-            status: paymentMethod === 'online' ? 'pending' : 'success',
-            order,
-            payment
-        });
+        return successRes(res, 201, true, "Order Created Successfull", { status: paymentMethod === 'online' ? 'pending' : 'success', order, payment })
 
     } catch (err) {
         await session.abortTransaction();

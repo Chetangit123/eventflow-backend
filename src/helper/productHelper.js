@@ -3,6 +3,7 @@
 const { default: mongoose } = require("mongoose");
 const AppError = require("../utils/AppError");
 const ProductSale = require("../models/ProductSale");
+const QueryBuilder = require("../services/queryBuilder");
 
 const isValidId = (id) => mongoose.isValidObjectId(id);
 
@@ -43,7 +44,9 @@ async function applyCouponIfAny({ couponCode, userId, items, subtotal }) {
 
 // Load product + specific variant
 async function loadProductAndVariant(productId, variantId, session = null) {
-    const product = await ProductSale.findById(productId).session(session);
+    let productQb = new QueryBuilder(ProductSale);
+    const product = await productQb.findOne({ _id: productId }).session(session).exec();
+    // const product = await ProductSale.findById(productId).session(session);
     if (!product) throw new AppError('Product not found', 404);
 
     const variant = product.variants.id(variantId);
@@ -75,12 +78,29 @@ function buildOrderItemSnapshot({ product, variant, qty }) {
 // Atomic stock decrement for ONE line item
 async function decrementStockAtomic({ productId, variantId, qty, session }) {
     const res = await ProductSale.updateOne(
-        { _id: productId, 'variants._id': variantId, 'variants.stock': { $gte: qty } },
-        { $inc: { 'variants.$.stock': -qty } },
-        { session }
+        {
+            _id: productId,
+            isDeleted: false,
+            'variants': {
+                $elemMatch: {
+                    _id: variantId,
+                    stock: { $gte: qty }
+                }
+            }
+        },
+        {
+            $inc: { 'variants.$[elem].stock': -qty }
+        },
+        {
+            session,
+            arrayFilters: [{ 'elem._id': variantId }]
+        }
     );
     return res.matchedCount === 1 && res.modifiedCount === 1;
 }
+
+
+
 
 module.exports = {
     isValidId,
