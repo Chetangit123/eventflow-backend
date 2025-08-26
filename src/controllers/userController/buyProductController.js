@@ -4,8 +4,9 @@ const ProductSale = require('../../models/ProductSale');
 const catchAsync = require('../../utils/catchAsync');
 const AppError = require('../../utils/AppError');
 const { successRes } = require('../../utils/responseFormatter');
-const { loadProductAndVariant, buildOrderItemSnapshot, calcShipping, applyCouponIfAny, decrementStockAtomic } = require('../../helper/productHelper');
+const { loadProductAndVariant, buildOrderItemSnapshot, calcShipping, applyCouponIfAny, decrementStockAtomic, isValidId } = require('../../helper/productHelper');
 const SaleOrder = require('../../models/SaleOrder');
+const { createPaymentForOrder } = require('../commonController/checkoutController');
 const parseCSV = (val) =>
     typeof val === 'string'
         ? val.split(',').map(s => s.trim()).filter(Boolean)
@@ -441,7 +442,7 @@ exports.getSaleProductById = catchAsync(async (req, res, next) => {
  */
 exports.buyNow = catchAsync(async (req, res, next) => {
     const userId = req.user?._id;
-    const { productId, variantId, qty = 1, addressId, paymentMethod, coupon } = req.body;
+    const { productId = "68ad53a4ad4fcd7c26ac075c", variantId = "68ad53a4ad4fcd7c26ac075e", qty = 1, addressId, paymentMethod, coupon, gateway = 'razorpay' } = req.body;
 
     if (!userId) return next(new AppError('Unauthorized', 401));
     if (!isValidId(productId) || !isValidId(variantId)) return next(new AppError('Invalid productId or variantId', 400));
@@ -461,7 +462,7 @@ exports.buyNow = catchAsync(async (req, res, next) => {
             throw new AppError('Insufficient stock', 400);
         }
 
-        // 3) Build order line snapshot
+        // 3) Build order item snapshot
         const line = buildOrderItemSnapshot({ product, variant, qty: quantity });
 
         // 4) Compute totals
@@ -478,7 +479,7 @@ exports.buyNow = catchAsync(async (req, res, next) => {
         if (!ok) throw new AppError('Stock changed, please try again', 409);
 
         // 6) Create order
-        const order = await SaleOrder.create([{
+        const [order] = await SaleOrder.create([{
             user: userId,
             items: [line],
             subtotal: itemsTotal,
@@ -486,25 +487,38 @@ exports.buyNow = catchAsync(async (req, res, next) => {
             total: grandTotal,
             address: addressId,
             paymentMethod,
-            paymentStatus: paymentMethod === 'cod' ? 'pending' : 'pending', // mark 'paid' on webhook later
+            paymentStatus: 'pending', // webhook se update hoga
+            currency: "INR",
             notes: appliedCoupon ? `Coupon: ${appliedCoupon}, Discount: ${discountAmount}` : undefined
         }], { session });
 
-        // 7) (Optional) Create payment intent for 'online'
-        let payment = null;
-        if (paymentMethod === 'online') {
-            // TODO: integrate with Razorpay/Stripe/CC Avenue etc. Keep order in 'pending'
-            // payment = await createPaymentIntent(grandTotal, order[0]._id);
-        }
-
+        // 7) Commit order to DB before payment intent
         await session.commitTransaction();
         session.endSession();
 
+        let payment = null;
+
+        // 8) Create payment intent if online
+        if (paymentMethod === 'online') {
+            payment = await createPaymentForOrder({
+                order,
+                user: req.user,
+                gateway
+            });
+
+            // update order with paymentIntentId for reconciliation
+            await SaleOrder.findByIdAndUpdate(order._id, {
+                paymentIntentId: payment?.razorpayOrder?.id || null,
+                paymentGateway: gateway
+            });
+        }
+
         return res.status(201).json({
-            status: 'success',
-            order: order[0],
-            payment // null or intent info
+            status: paymentMethod === 'online' ? 'pending' : 'success',
+            order,
+            payment
         });
+
     } catch (err) {
         await session.abortTransaction();
         session.endSession();

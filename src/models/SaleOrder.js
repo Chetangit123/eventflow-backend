@@ -27,6 +27,7 @@ const ShipmentSchema = new Schema({
     status: String
 }, { _id: false });
 
+// models/SaleOrder.js  (modified parts)
 const SaleOrderSchema = new Schema({
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     items: [OrderItemSchema],
@@ -36,12 +37,38 @@ const SaleOrderSchema = new Schema({
     address: { type: Schema.Types.ObjectId, ref: 'Address', required: true },
     paymentMethod: { type: String, enum: ['online', 'cod'], required: true },
     paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
+
+    // ---------- NEW fields ----------
+    paymentGateway: { type: String, enum: ['razorpay', 'stripe', null], default: null }, // which gateway was used
+    paymentIntentId: { type: String, default: null },   // gateway-specific id (razorpay_order_id / stripe_payment_intent_id)
+    paymentResponse: { type: Object, default: null },   // store raw gateway response (capture data)
+    idempotencyKey: { type: String, default: null },    // store idempotency key for avoidance of duplicates
+    currency: { type: String, default: 'INR' },
+    // ---------------------------------
+
     shipment: ShipmentSchema,
     orderStatus: { type: String, enum: ['placed', 'packed', 'shipped', 'delivered', 'cancelled', 'returned'], default: 'placed' },
     notes: String,
     cancelledAt: { type: Date, default: null },
     cancelledBy: { type: String, enum: ['user', 'admin', 'delivery'], default: 'user' }
 }, { timestamps: true });
+
+
+// const SaleOrderSchema = new Schema({
+//     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+//     items: [OrderItemSchema],
+//     subtotal: Number,
+//     shippingCharges: Number,
+//     total: Number,
+//     address: { type: Schema.Types.ObjectId, ref: 'Address', required: true },
+//     paymentMethod: { type: String, enum: ['online', 'cod'], required: true },
+//     paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
+//     shipment: ShipmentSchema,
+//     orderStatus: { type: String, enum: ['placed', 'packed', 'shipped', 'delivered', 'cancelled', 'returned'], default: 'placed' },
+//     notes: String,
+//     cancelledAt: { type: Date, default: null },
+//     cancelledBy: { type: String, enum: ['user', 'admin', 'delivery'], default: 'user' }
+// }, { timestamps: true });
 
 softDelete(SaleOrderSchema);
 module.exports = mongoose.model('SaleOrder', SaleOrderSchema);

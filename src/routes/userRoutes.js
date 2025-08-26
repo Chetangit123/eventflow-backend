@@ -6,6 +6,7 @@ const TicketBookingController = require("../controllers/userController/ticketBoo
 const eventManagementController = require("../controllers/commonController/eventManagementController");
 const cartController = require("../controllers/userController/cartController");
 const buyProductController = require("../controllers/userController/buyProductController");
+const paymentController = require("../controllers/commonController/paymentController");
 const { protect } = require("../utils/jwt");
 const { uploadUserProfile } = require("../services/multer");
 
@@ -46,5 +47,9 @@ router.put('/update-item-quantity', protect('user'), cartController.updateItemQu
 router.get('/get-products', buyProductController.saleProductList);
 router.get('/get-product-details', buyProductController.getSaleProductById);
 // router.post('/buy-product', protect('user'), buyProductController.buyProduct);
+
+
+router.post('/buy-now', protect('user'), buyProductController.buyNow);
+router.post('/verify-razorpay-payment', protect('user'), paymentController.verifyRazorpayPayment);
 
 module.exports = router;

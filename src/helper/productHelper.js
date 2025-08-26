@@ -1,5 +1,9 @@
 /* ============================== Helpers ============================== */
 
+const { default: mongoose } = require("mongoose");
+const AppError = require("../utils/AppError");
+const ProductSale = require("../models/ProductSale");
+
 const isValidId = (id) => mongoose.isValidObjectId(id);
 
 const effectivePriceOf = (variant) => {
