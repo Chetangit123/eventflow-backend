@@ -7,11 +7,13 @@ const { successRes } = require("../../utils/responseFormatter");
 
 exports.addToCart = catchAsync(async (req, res, next) => {
     const userId = req.user._id;
-    const { productId, variantId, qty } = req.body;
+    let { productId, variantId, qty } = req.body;
 
     if (!productId || !variantId || !qty) {
         return next(new AppError("Product, Variant and Qty are required", 400));
     }
+
+    qty = Number(qty);
 
     // 🔹 Product fetch
     let productQb = new QueryBuilder(ProductSale);
@@ -27,7 +29,7 @@ exports.addToCart = catchAsync(async (req, res, next) => {
 
     const mrp = variant.price;
     const sellPrice = variant.discountPrice > 0 ? variant.discountPrice : variant.price;
-    const lineTotal = qty * sellPrice;
+    const lineTotal = Number(qty) * sellPrice;
 
     // 🔹 Cart fetch/create
     let cartQb = new QueryBuilder(SaleCart);
