@@ -6,7 +6,7 @@ const generateSKU = require('../utils/generateSKU');
 
 const VariantSchema = new Schema({
     color: { type: String, required: true },   // e.g. "Red"
-    size: { type: String, required: true },    // e.g. "M", "L"
+    size: { type: String, default: "free" },    // e.g. "M", "L"
     sku: { type: String, unique: true },
     price: { type: Number, required: true },
     discountPrice: { type: Number, default: 0 },
@@ -16,13 +16,14 @@ const VariantSchema = new Schema({
 
 const ProductSaleSchema = new Schema({
     title: { type: String, required: true, trim: true },
-    slug: { type: String, unique: true, index: true },
+    slug: { type: String, index: true },
     description: String,
     category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     tags: [String],
     status: { type: String, enum: ["active", "inactive", "draft"], default: "active" },
 
     variants: [VariantSchema],   // ✅ all variations here
+    gender: { type: String, enum: ["men", "women", 'boys', 'girls', "unisex"] },
 
     createdBy: { type: Schema.Types.ObjectId, ref: "User" }
 }, { timestamps: true });

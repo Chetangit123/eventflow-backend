@@ -1,28 +1,36 @@
 // validations/productValidations.js
 const Joi = require("joi");
 
-const createProduct = Joi.object({
+const createProductSchema = Joi.object({
     title: Joi.string().trim().required(),
-    description: Joi.string().allow(""),
+    description: Joi.string().allow('').optional(),
     category: Joi.string().required(),
-    tags: Joi.array().items(Joi.string()),
+    tags: Joi.array().items(Joi.string().trim()).default([]),
 
     variants: Joi.array()
         .items(
             Joi.object({
-                color: Joi.string().required(),
-                size: Joi.string().required(),
+                color: Joi.string().trim().required(),
+                size: Joi.string().trim().required(),
                 price: Joi.number().positive().required(),
-                discountPrice: Joi.number().positive().less(Joi.ref('price')).optional(),
+                // allow 0..price (0 means free) — we will treat undefined specially below
+                discountPrice: Joi.number().min(0).max(Joi.ref('price')).optional(),
                 stock: Joi.number().integer().min(0).default(0),
-                images: Joi.array().items(Joi.string().uri()).default([]),
-                sku: Joi.string().optional()
+                images: Joi.array().items(Joi.string().uri()).max(10).default([]),
+                sku: Joi.string().trim().optional()
             })
         )
         .min(1)
-        .required(),
+        .required()
+        // Optionally ensure provided SKUs in payload are unique
+        .unique((a, b) => {
+            const sa = (a.sku || '').toString().trim().toUpperCase();
+            const sb = (b.sku || '').toString().trim().toUpperCase();
+            return sa && sb && sa === sb;
+        }),
 
-    status: Joi.string().valid("active", "inactive", "draft").default("active")
+    status: Joi.string().valid('active', 'inactive', 'draft').default('active'),
+    gender: Joi.string().valid('man', 'woman', 'unisex').optional()
 });
 
 const getProductByIdValidation = Joi.object({
@@ -49,4 +57,4 @@ const updateProductValidation = Joi.object({
     status: Joi.string().valid("active", "inactive", "draft").optional()
 });
 
-module.exports = { createProduct, getProductByIdValidation, updateProductValidation };
+module.exports = { createProductSchema, getProductByIdValidation, updateProductValidation };

@@ -4,18 +4,36 @@ const Category = require("../../models/Category");
 const { successRes } = require("../../utils/responseFormatter");
 const AppError = require("../../utils/AppError");
 const QueryBuilder = require("../../services/queryBuilder");
-const { mongo, default: mongoose } = require("mongoose");
+const { default: mongoose } = require("mongoose");
 
 exports.createSaleProduct = catchAsync(async (req, res, next) => {
     let { title, category, description, tags, variants } = req.body;
+
     let qb = new QueryBuilder(Category);
     let findCategory = await qb.findOne({ _id: category }).exec();
     if (!findCategory) {
         return next(new AppError("Category not found", 404));
     }
-    const product = await ProductSale.create({ title, category, description, tags, variants });
+
+    // ✅ Variants me discountPrice set karna
+    variants = variants.map(v => {
+        if (!v.discountPrice || v.discountPrice === 0) {
+            v.discountPrice = v.price;
+        }
+        return v;
+    });
+
+    const product = await ProductSale.create({
+        title,
+        category,
+        description,
+        tags,
+        variants
+    });
+
     return successRes(res, 201, true, "Product created successfully", product);
 });
+
 
 exports.getAllSalesProducts = catchAsync(async (req, res, next) => {
     let { page = 1, limit = 10 } = req.query;

@@ -48,7 +48,7 @@ router.put('/delete-category', protect('superadmin'), validateBody(categoryValid
 
 /** Product Management */
 
-router.post('/create-product', protect('superadmin'), validateBody(saleProductValidation.createProduct), adminProductController.createSaleProduct);
+router.post('/create-product', protect('superadmin'), validateBody(saleProductValidation.createProductSchema), adminProductController.createSaleProduct);
 router.get('/get-all-sale-products', protect('superadmin'), adminProductController.getAllSalesProducts);
 router.get('/get-sales-product-by-id', protect('superadmin'), validateQuery(saleProductValidation.getProductByIdValidation), adminProductController.getSaleProductById);
 router.put('/update-sale-product', protect('superadmin'), validateBody(saleProductValidation.updateProductValidation), adminProductController.updateSaleProduct);

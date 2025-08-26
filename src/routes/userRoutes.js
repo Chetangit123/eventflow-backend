@@ -5,6 +5,7 @@ const userAuthController = require("../controllers/userController/userAuthContro
 const TicketBookingController = require("../controllers/userController/ticketBookingController");
 const eventManagementController = require("../controllers/commonController/eventManagementController");
 const cartController = require("../controllers/userController/cartController");
+const buyProductController = require("../controllers/userController/buyProductController");
 const { protect } = require("../utils/jwt");
 const { uploadUserProfile } = require("../services/multer");
 
@@ -39,5 +40,11 @@ router.get('/get-cart', protect('user'), cartController.getCart);
 router.put('/remove-item-from-cart', protect('user'), cartController.removeItemFromCart);
 router.put('/clear-cart', protect('user'), cartController.clearCart);
 router.put('/update-item-quantity', protect('user'), cartController.updateItemQuantity);
+
+/** Buy Product Routes */
+
+router.get('/get-products', buyProductController.saleProductList);
+router.get('/get-product-details', buyProductController.getSaleProductById);
+// router.post('/buy-product', protect('user'), buyProductController.buyProduct);
 
 module.exports = router;
