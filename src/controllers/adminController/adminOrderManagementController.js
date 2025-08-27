@@ -1,5 +1,6 @@
 const { toInt, isValidId } = require("../../helper/productHelper");
 const SaleOrder = require("../../models/SaleOrder");
+const AppError = require("../../utils/AppError");
 const catchAsync = require("../../utils/catchAsync");
 const { successRes } = require("../../utils/responseFormatter");
 
@@ -129,3 +130,67 @@ exports.adminListOrders = catchAsync(async (req, res, next) => {
         items
     });
 });
+
+// Map orderStatus → timestamp field
+const STATUS_TO_TIMESTAMP = {
+    placed: 'placedAt',
+    packed: 'packedAt',
+    shipped: 'shippedAt',
+    delivered: 'deliveredAt',
+    cancelled: 'cancelledAt',
+    returned: 'returnedAt',
+};
+
+exports.updateOrderStatus = catchAsync(async (req, res, next) => {
+    const { orderStatus, notes, courier, awb, trackingUrl, orderId } = req.body;
+
+    if (!orderStatus) {
+        return res.status(400).json({ message: 'orderStatus is required' });
+    }
+
+    if (!Object.keys(STATUS_TO_TIMESTAMP).includes(orderStatus)) {
+        return next(new AppError('Invalid orderStatus', 400));
+    }
+
+    let order = await SaleOrder.findById(orderId);
+    if (!order) {
+        return next(new AppError('Order not found', 404));
+    }
+
+    // 🚨 Check if already in same status
+    if (order.orderStatus === orderStatus) {
+        return next(new AppError('Order is already in this status', 400));
+    }
+
+    // Update order status
+    order.orderStatus = orderStatus;
+
+    // Update timestamp only if null
+    const tsField = STATUS_TO_TIMESTAMP[orderStatus];
+    if (tsField && !order[tsField]) {
+        order[tsField] = new Date();
+    }
+
+    // Optional updates
+    if (notes) order.notes = notes;
+    if (courier || awb || trackingUrl) {
+        order.shipment = {
+            ...order.shipment,
+            courier: courier || order.shipment?.courier,
+            awb: awb || order.shipment?.awb,
+            trackingUrl: trackingUrl || order.shipment?.trackingUrl,
+            status: orderStatus, // keep shipment in sync
+        };
+    }
+
+    // If cancelled → mark who cancelled (always admin here)
+    if (orderStatus === 'cancelled') {
+        order.cancelledBy = 'admin';
+        if (!order.cancelledAt) order.cancelledAt = new Date();
+    }
+
+    await order.save();
+
+    return successRes(res, 200, 'Order status updated successfully', order);
+});
+

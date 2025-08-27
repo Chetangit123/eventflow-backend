@@ -56,5 +56,6 @@ router.put('/update-sale-product', protect('superadmin'), validateBody(saleProdu
 
 /** ====================== Order Management================= */
 router.get('/get-order-list', protect('superadmin'), adminOrderManagementController.adminListOrders);
+router.put('/update-order-status', protect('superadmin'), adminOrderManagementController.updateOrderStatus);
 
 module.exports = router;
