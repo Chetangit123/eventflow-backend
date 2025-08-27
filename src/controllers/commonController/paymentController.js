@@ -8,6 +8,7 @@ const Razorpay = require('razorpay');
 const { verifyRazorpaySignature } = require('../../services/payment.service');
 const ENVIRONMENT = require('../../config/env');
 const crypto = require('crypto');
+const { successRes } = require('../../utils/responseFormatter');
 
 /**
  * Helper: restock items (atomic increments)
@@ -129,14 +130,11 @@ exports.verifyRazorpayPayment = catchAsync(async (req, res, next) => {
     };
     order.orderStatus = order.orderStatus === 'placed' ? 'placed' : 'placed'; // keep or set placed
     await order.save();
-
-    // 8) return success
-    return res.json({
-        ok: true,
-        message: 'Payment verified and order updated',
+    return successRes(res, 200, 'Payment verified and order updated', {
         order,
-        note: amountMismatch ? 'Amount mismatch detected — flagged in order.notes' : undefined
-    });
+        note: amountMismatch ? 'Amount mismatch detected — flagged in order.notes' : undefined,
+    })
+
 });
 
 /**

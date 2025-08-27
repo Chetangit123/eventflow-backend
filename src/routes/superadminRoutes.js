@@ -7,6 +7,7 @@ const adminGatekeeperController = require("../controllers/adminController/adminG
 const adminProductController = require("../controllers/adminController/adminProductController");
 const saleProductValidation = require("../validations/saleProductValidation");
 const adminCategoryController = require("../controllers/adminController/adminCategoryController");
+const adminOrderManagementController = require("../controllers/adminController/adminOrderManagementController");
 const { protect } = require("../utils/jwt");
 const { validateBody, validateQuery } = require("../middlewares/validate");
 const categoryValidation = require("../validations/categoryValidation");
@@ -54,6 +55,6 @@ router.get('/get-sales-product-by-id', protect('superadmin'), validateQuery(sale
 router.put('/update-sale-product', protect('superadmin'), validateBody(saleProductValidation.updateProductValidation), adminProductController.updateSaleProduct);
 
 /** ====================== Order Management================= */
-router.get('/get-order-list', protect('superadmin'),)
+router.get('/get-order-list', protect('superadmin'), adminOrderManagementController.adminListOrders);
 
 module.exports = router;

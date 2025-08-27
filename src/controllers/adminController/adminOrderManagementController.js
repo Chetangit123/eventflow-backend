@@ -1,6 +1,7 @@
 const { toInt, isValidId } = require("../../helper/productHelper");
 const SaleOrder = require("../../models/SaleOrder");
 const catchAsync = require("../../utils/catchAsync");
+const { successRes } = require("../../utils/responseFormatter");
 
 /**
  * (Optional) ADMIN list — if needed later
@@ -11,7 +12,7 @@ exports.adminListOrders = catchAsync(async (req, res, next) => {
     // only if req.user.role === 'admin' (guard outside)
     const {
         page = 1,
-        limit = 20,
+        limit = 30,
         sort = 'newest',
         q, // orderId/email/sku
         orderStatus,
@@ -88,8 +89,7 @@ exports.adminListOrders = catchAsync(async (req, res, next) => {
 
     const [{ items, total }] = await SaleOrder.aggregate(pipeline);
     const totalItems = total?.[0]?.count || 0;
-
-    return res.json({
+    return successRes(res, 200, 'Order list fetched', {
         page: pageNum,
         limit: perPage,
         totalItems,
