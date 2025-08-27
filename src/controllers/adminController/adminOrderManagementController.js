@@ -48,20 +48,53 @@ exports.adminListOrders = catchAsync(async (req, res, next) => {
                 }
             }]
             : []),
+        // populate user
         {
             $lookup: {
                 from: 'users',
-                localField: 'user',
-                foreignField: '_id',
-                as: 'usr'
+                let: { uid: "$user" },
+                pipeline: [
+                    { $match: { $expr: { $eq: ["$_id", "$$uid"] } } },
+                    { $project: { _id: 1, name: 1, email: 1, phone: 1 } }
+                ],
+                as: "user"
             }
         },
-        { $addFields: { userEmail: { $arrayElemAt: ['$usr.email', 0] } } },
+        { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+
+        // populate address
+        {
+            $lookup: {
+                from: 'addresses',
+                let: { aid: "$address" },
+                pipeline: [
+                    { $match: { $expr: { $eq: ["$_id", "$$aid"] } } },
+                    {
+                        $project: {
+                            _id: 1,
+                            label: 1,
+                            line1: 1,
+                            line2: 1,
+                            city: 1,
+                            state: 1,
+                            pincode: 1,
+                            country: 1,
+                            lat: 1,
+                            lng: 1,
+                            isDefault: 1
+                        }
+                    }
+                ],
+                as: "address"
+            }
+        },
+        { $unwind: { path: "$address", preserveNullAndEmptyArrays: true } },
+
         {
             $project: {
                 _id: 1,
                 user: 1,
-                userEmail: 1,
+                address: 1,
                 createdAt: 1,
                 orderStatus: 1,
                 paymentStatus: 1,
@@ -86,7 +119,6 @@ exports.adminListOrders = catchAsync(async (req, res, next) => {
             }
         }
     ];
-
     const [{ items, total }] = await SaleOrder.aggregate(pipeline);
     const totalItems = total?.[0]?.count || 0;
     return successRes(res, 200, 'Order list fetched', {
