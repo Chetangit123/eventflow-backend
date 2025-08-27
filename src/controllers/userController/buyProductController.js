@@ -3,12 +3,13 @@ const mongoose = require('mongoose');
 const ProductSale = require('../../models/ProductSale');
 const catchAsync = require('../../utils/catchAsync');
 const AppError = require('../../utils/AppError');
-const { successRes } = require('../../utils/responseFormatter');
+const { successRes, errorRes } = require('../../utils/responseFormatter');
 const { loadProductAndVariant, buildOrderItemSnapshot, calcShipping, applyCouponIfAny, decrementStockAtomic, isValidId } = require('../../helper/productHelper');
 const SaleOrder = require('../../models/SaleOrder');
 const { createPaymentForOrder } = require('../commonController/checkoutController');
 const Address = require('../../models/Address');
 const QueryBuilder = require('../../services/queryBuilder');
+const SaleCart = require('../../models/SaleCart');
 const parseCSV = (val) =>
     typeof val === 'string'
         ? val.split(',').map(s => s.trim()).filter(Boolean)
@@ -17,6 +18,12 @@ const parseCSV = (val) =>
 const toBool = (v) => v === '1' || v === 'true' || v === true;
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const toInt = (v, d) => {
+    const x = parseInt(v, 10);
+    return Number.isFinite(x) && x > 0 ? x : d;
+};
+const parseBool = v => v === true || v === 'true' || v === '1';
 
 const sortStages = (sortKey, mode = 'product') => {
     switch (sortKey) {
@@ -452,20 +459,18 @@ exports.buyNow = catchAsync(async (req, res, next) => {
     if (!['cod', 'online'].includes(String(paymentMethod))) return next(new AppError('Invalid paymentMethod', 400));
 
     const quantity = Math.max(1, Number(qty));
-    console.log(quantity, "quantity")
 
     const session = await mongoose.startSession();
     session.startTransaction();
     try {
-        // let addressQb = new QueryBuilder(Address)
-        // let findAddress = await addressQb.findOne({ _id: addressId }).session(session).exec()
-        // if (!findAddress) {
-        //     throw new AppError('Address Not Found')
-        // }
+        let addressQb = new QueryBuilder(Address)
+        let findAddress = await addressQb.findOne({ _id: addressId }).session(session).exec()
+        if (!findAddress) {
+            throw new AppError('Address Not Found')
+        }
         // 1) Load product+variant
         const { product, variant } = await loadProductAndVariant(productId, variantId, session);
-        console.log(product, "product")
-        console.log(variant, "variant")
+
         // 2) Validate stock
         if (Number(variant.stock || 0) < quantity) {
             throw new AppError('Insufficient stock', 400);
@@ -541,14 +546,21 @@ exports.buyNow = catchAsync(async (req, res, next) => {
  */
 exports.placeOrderFromCart = catchAsync(async (req, res, next) => {
     const userId = req.user?._id;
-    const { addressId, paymentMethod, coupon } = req.body;
+    const { addressId, paymentMethod, gateway, coupon } = req.body;
 
     if (!userId) return next(new AppError('Unauthorized', 401));
     if (!isValidId(addressId)) return next(new AppError('Invalid addressId', 400));
     if (!['cod', 'online'].includes(String(paymentMethod))) return next(new AppError('Invalid paymentMethod', 400));
 
+    let addressQb = new QueryBuilder(Address)
+    let findAddress = await addressQb.findOne({ _id: addressId }).exec()
+    if (!findAddress) {
+        return next(new AppError('Address Not Found'))
+    }
+
     // Load cart
-    const cart = await SaleCart.findOne({ user: userId });
+    let cartQb = new QueryBuilder(SaleCart)
+    const cart = await cartQb.findOne({ user: userId }).exec();
     if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) {
         return next(new AppError('Cart is empty', 400));
     }
@@ -611,7 +623,7 @@ exports.placeOrderFromCart = catchAsync(async (req, res, next) => {
         }
 
         // 2) Create order
-        const order = await SaleOrder.create([{
+        const [order] = await SaleOrder.create([{
             user: userId,
             items: lines,
             subtotal: itemsTotal,
@@ -619,6 +631,7 @@ exports.placeOrderFromCart = catchAsync(async (req, res, next) => {
             total: grandTotal,
             address: addressId,
             paymentMethod,
+            paymentGateway: gateway,
             paymentStatus: paymentMethod === 'cod' ? 'pending' : 'pending', // mark 'paid' post webhook
             notes: appliedCoupon ? `Coupon: ${appliedCoupon}, Discount: ${discountAmount}` : undefined
         }], { session });
@@ -634,22 +647,27 @@ exports.placeOrderFromCart = catchAsync(async (req, res, next) => {
         // 4) Payment intent (if online)
         let payment = null;
         if (paymentMethod === 'online') {
-            // integrate gateway here
-            // payment = await createPaymentIntent(grandTotal, order[0]._id);
+            payment = await createPaymentForOrder({
+                order,
+                user: req.user,
+                gateway
+            });
+
+            // update order with paymentIntentId for reconciliation
+            await SaleOrder.findByIdAndUpdate(order._id, {
+                paymentIntentId: payment?.razorpayOrder?.id || null,
+                paymentGateway: gateway
+            });
         }
 
         await session.commitTransaction();
         session.endSession();
+        return successRes(res, 201, true, 'Order created successfully', { order: order, payment });
 
-        return res.status(201).json({
-            status: 'success',
-            order: order[0],
-            payment
-        });
     } catch (err) {
         await session.abortTransaction();
         session.endSession();
-        return next(err);
+        return next(new AppError(err.message, 500));
     }
 });
 
@@ -710,6 +728,351 @@ exports.previewCheckout = catchAsync(async (req, res, next) => {
         notes: reason || undefined
     });
 });
+
+/**
+ * GET /api/v1/orders (USER)
+ * Query:
+ *  - page=1&limit=10
+ *  - sort=newest|oldest|total_asc|total_desc
+ *  - q= free text on id/receipt/sku/title
+ *  - orderStatus=placed|packed|shipped|delivered|cancelled|returned
+ *  - paymentStatus=pending|paid|failed|refunded
+ *  - from=YYYY-MM-DD
+ *  - to=YYYY-MM-DD
+ *  - includeCancelled=true|false (default false)
+ */
+exports.getMyOrders = catchAsync(async (req, res, next) => {
+    const userId = req.user?._id;
+    if (!userId) return next(new AppError('Unauthorized', 401));
+
+    const {
+        page = 1,
+        limit = 10,
+        sort = 'newest',
+        q,
+        orderStatus,
+        paymentStatus,
+        from,
+        to,
+        includeCancelled
+    } = req.query;
+
+    const pageNum = toInt(page, 1);
+    const perPage = Math.min(toInt(limit, 10), 100);
+    const skip = (pageNum - 1) * perPage;
+
+    // base match
+    const match = {
+        user: new mongoose.Types.ObjectId(userId),
+        isDeleted: { $ne: true }
+    };
+
+    // filters
+    if (orderStatus) match.orderStatus = orderStatus;
+    if (paymentStatus) match.paymentStatus = paymentStatus;
+
+    // date range (createdAt)
+    if (from || to) {
+        match.createdAt = {};
+        if (from) match.createdAt.$gte = new Date(from + 'T00:00:00.000Z');
+        if (to) match.createdAt.$lte = new Date(to + 'T23:59:59.999Z');
+    }
+
+    // exclude cancelled by default
+    if (!parseBool(includeCancelled)) {
+        match.orderStatus = match.orderStatus || { $ne: 'cancelled' };
+    }
+
+    // search (q): by _id (order id), receipt (we used _id as receipt in earlier examples), item sku/title snapshot
+    const pipeline = [
+        { $match: match },
+
+        // textual search
+        ...(q && q.trim()
+            ? [{
+                $match: {
+                    $or: [
+                        { _id: isValidId(q) ? new mongoose.Types.ObjectId(q) : null },
+                        { notes: new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+                        { 'items.skuSnapshot': new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+                        { 'items.titleSnapshot': new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+                    ]
+                }
+            }]
+            : []),
+
+        // cover image using FIRST item’s product+variant (cheap card)
+        {
+            $addFields: {
+                firstItem: { $arrayElemAt: ['$items', 0] }
+            }
+        },
+        {
+            $lookup: {
+                from: 'productsales',
+                let: {
+                    pid: '$firstItem.product',
+                    vid: '$firstItem.variantId'
+                },
+                pipeline: [
+                    { $match: { $expr: { $eq: ['$_id', '$$pid'] } } },
+                    {
+                        $project: {
+                            // get first matching variant’s first image
+                            thumb: {
+                                $let: {
+                                    vars: {
+                                        variant: {
+                                            $first: {
+                                                $filter: {
+                                                    input: '$variants',
+                                                    as: 'v',
+                                                    cond: { $eq: ['$$v._id', '$$vid'] }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    in: {
+                                        $cond: [
+                                            { $gt: [{ $size: { $ifNull: ['$$variant.images', []] } }, 0] },
+                                            { $arrayElemAt: ['$$variant.images', 0] },
+                                            null
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                as: 'cover'
+            }
+        },
+        {
+            $addFields: {
+                coverImage: { $ifNull: [{ $arrayElemAt: ['$cover.thumb', 0] }, null] }
+            }
+        },
+
+        // compact card data
+        {
+            $project: {
+                _id: 1,
+                createdAt: 1,
+                orderStatus: 1,
+                paymentStatus: 1,
+                paymentGateway: 1,
+                total: 1,
+                subtotal: 1,
+                shippingCharges: 1,
+                currency: 1,
+                itemsCount: { $size: { $ifNull: ['$items', []] } },
+                // snapshot summary
+                firstItem: {
+                    title: '$firstItem.titleSnapshot',
+                    color: '$firstItem.colorSnapshot',
+                    size: '$firstItem.sizeSnapshot',
+                    qty: '$firstItem.qty',
+                    sku: '$firstItem.skuSnapshot'
+                },
+                coverImage: 1
+            }
+        },
+
+        // sorting
+        ...(() => {
+            switch (sort) {
+                case 'oldest': return [{ $sort: { createdAt: 1, _id: 1 } }];
+                case 'total_asc': return [{ $sort: { total: 1, _id: 1 } }];
+                case 'total_desc': return [{ $sort: { total: -1, _id: 1 } }];
+                default: return [{ $sort: { createdAt: -1, _id: 1 } }];
+            }
+        })(),
+
+        // paginate + total
+        {
+            $facet: {
+                items: [{ $skip: skip }, { $limit: perPage }],
+                total: [{ $count: 'count' }]
+            }
+        }
+    ];
+
+    const [{ items, total }] = await SaleOrder.aggregate(pipeline);
+    const totalItems = total?.[0]?.count || 0;
+
+    return res.json({
+        page: pageNum,
+        limit: perPage,
+        totalItems,
+        totalPages: Math.ceil(totalItems / perPage),
+        items
+    });
+});
+
+
+/**
+ * GET /api/v1/orders/:orderId (USER)
+ * - Full order detail with per-line current product/variant thumbnail
+ * - Uses snapshots for pricing/title, so old orders don’t break
+ */
+exports.getMyOrderById = catchAsync(async (req, res, next) => {
+    const userId = req.user?._id;
+    if (!userId) return next(new AppError('Unauthorized', 401));
+
+    const { orderId } = req.query;
+    if (!isValidId(orderId)) return next(new AppError('Invalid orderId', 400));
+
+    // Aggregate to enrich each line with current product/variant images
+    const pipeline = [
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(orderId),
+                user: new mongoose.Types.ObjectId(userId),
+                isDeleted: { $ne: true }
+            }
+        },
+        { $limit: 1 },
+
+        // Unwind items to lookup per line
+        { $unwind: { path: '$items', preserveNullAndEmptyArrays: true } },
+
+        {
+            $lookup: {
+                from: 'productsales',
+                let: { pid: '$items.product', vid: '$items.variantId' },
+                pipeline: [
+                    { $match: { $expr: { $eq: ['$_id', '$$pid'] } } },
+                    {
+                        $project: {
+                            productId: '$_id',
+                            slug: 1,
+                            title: 1,
+                            variant: {
+                                $first: {
+                                    $filter: {
+                                        input: '$variants',
+                                        as: 'v',
+                                        cond: { $eq: ['$$v._id', '$$vid'] }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $project: {
+                            productId: 1,
+                            slug: 1,
+                            title: 1,
+                            image: {
+                                $cond: [
+                                    { $gt: [{ $size: { $ifNull: ['$variant.images', []] } }, 0] },
+                                    { $arrayElemAt: ['$variant.images', 0] },
+                                    null
+                                ]
+                            },
+                            currentPrice: '$variant.price',
+                            currentDiscountPrice: '$variant.discountPrice',
+                            currentStock: '$variant.stock',
+                            currentSKU: '$variant.sku',
+                            currentColor: '$variant.color',
+                            currentSize: '$variant.size'
+                        }
+                    }
+                ],
+                as: 'prod'
+            }
+        },
+
+        // Merge looked-up data into item
+        {
+            $addFields: {
+                'items.image': { $arrayElemAt: ['$prod.image', 0] },
+                'items.current': {
+                    price: { $arrayElemAt: ['$prod.currentPrice', 0] },
+                    discountPrice: { $arrayElemAt: ['$prod.currentDiscountPrice', 0] },
+                    stock: { $arrayElemAt: ['$prod.currentStock', 0] },
+                    sku: { $arrayElemAt: ['$prod.currentSKU', 0] },
+                    color: { $arrayElemAt: ['$prod.currentColor', 0] },
+                    size: { $arrayElemAt: ['$prod.currentSize', 0] },
+                    slug: { $arrayElemAt: ['$prod.slug', 0] }
+                }
+            }
+        },
+
+        // Regroup items
+        {
+            $group: {
+                _id: '$_id',
+                doc: { $first: '$$ROOT' },
+                items: { $push: '$items' }
+            }
+        },
+        {
+            $replaceRoot: {
+                newRoot: {
+                    _id: '$_id',
+                    user: '$doc.user',
+                    address: '$doc.address',
+                    paymentMethod: '$doc.paymentMethod',
+                    paymentStatus: '$doc.paymentStatus',
+                    paymentGateway: '$doc.paymentGateway',
+                    paymentIntentId: '$doc.paymentIntentId',
+                    orderStatus: '$doc.orderStatus',
+                    notes: '$doc.notes',
+                    shipment: '$doc.shipment',
+                    subtotal: '$doc.subtotal',
+                    shippingCharges: '$doc.shippingCharges',
+                    total: '$doc.total',
+                    currency: '$doc.currency',
+                    createdAt: '$doc.createdAt',
+                    updatedAt: '$doc.updatedAt',
+                    packedAt: '$doc.packedAt',
+                    shippedAt: '$doc.shippedAt',
+                    deliveredAt: '$doc.deliveredAt',
+                    returnedAt: '$doc.returnedAt',
+                    cancelledAt: '$doc.cancelledAt',
+                    items: '$items'
+                }
+            }
+        }
+        ,
+
+        // add a derived timeline for UX (optional)
+        {
+            $addFields: {
+                timeline: [
+                    {
+                        label: 'Placed',
+                        at: '$createdAt',
+                        done: true
+                    },
+                    {
+                        label: 'Packed',
+                        at: '$packedAt',
+                        done: { $cond: [{ $ifNull: ['$packedAt', false] }, true, false] }
+                    },
+                    {
+                        label: 'Shipped',
+                        at: '$shippedAt',
+                        done: { $cond: [{ $ifNull: ['$shippedAt', false] }, true, false] }
+                    },
+                    {
+                        label: 'Delivered',
+                        at: '$deliveredAt',
+                        done: { $cond: [{ $ifNull: ['$deliveredAt', false] }, true, false] }
+                    }
+                ]
+            }
+        }
+
+    ];
+
+    const data = await SaleOrder.aggregate(pipeline);
+    if (!data || !data[0]) return next(new AppError('Order not found', 404));
+
+    return successRes(res, 200, true, 'Order fetched', data[0]);
+});
+
 
 
 

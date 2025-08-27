@@ -23,6 +23,9 @@ router.post('/forget-password', authController.forgetPassowrd);
 router.put('/reset-password', authController.resetPassword);
 router.post('/create-address', protect('user'), userAuthController.createAddress);
 
+/** ==================== Address Routes ==================== */
+router.post('/add-address', protect('user'), userAuthController.createAddress);
+
 /** event Details Routes */
 router.get('/get-all-events', eventManagementController.getAllEvents);
 router.get('/get-event', eventManagementController.getEvent);
@@ -50,6 +53,10 @@ router.get('/get-product-details', buyProductController.getSaleProductById);
 
 
 router.post('/buy-now', protect('user'), buyProductController.buyNow);
+router.post('/buy-from-cart', protect('user'), buyProductController.placeOrderFromCart);
+router.get('/preview-checkout', protect('user'), buyProductController.previewCheckout);
 router.post('/verify-razorpay-payment', protect('user'), paymentController.verifyRazorpayPayment);
+router.get('/my-orders', protect('user'), buyProductController.getMyOrders);
+router.get('/order-details', protect('user'), buyProductController.getMyOrderById);
 
 module.exports = router;

@@ -53,4 +53,7 @@ router.get('/get-all-sale-products', protect('superadmin'), adminProductControll
 router.get('/get-sales-product-by-id', protect('superadmin'), validateQuery(saleProductValidation.getProductByIdValidation), adminProductController.getSaleProductById);
 router.put('/update-sale-product', protect('superadmin'), validateBody(saleProductValidation.updateProductValidation), adminProductController.updateSaleProduct);
 
+/** ====================== Order Management================= */
+router.get('/get-order-list', protect('superadmin'),)
+
 module.exports = router;

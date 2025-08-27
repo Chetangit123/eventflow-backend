@@ -1,0 +1,99 @@
+const { toInt, isValidId } = require("../../helper/productHelper");
+const SaleOrder = require("../../models/SaleOrder");
+const catchAsync = require("../../utils/catchAsync");
+
+/**
+ * (Optional) ADMIN list — if needed later
+ * GET /api/v1/admin/orders
+ * Supports user/email search, statuses, date range, pagination, etc.
+ */
+exports.adminListOrders = catchAsync(async (req, res, next) => {
+    // only if req.user.role === 'admin' (guard outside)
+    const {
+        page = 1,
+        limit = 20,
+        sort = 'newest',
+        q, // orderId/email/sku
+        orderStatus,
+        paymentStatus,
+        from,
+        to
+    } = req.query;
+
+    const pageNum = toInt(page, 1);
+    const perPage = Math.min(toInt(limit, 20), 200);
+    const skip = (pageNum - 1) * perPage;
+
+    const match = { isDeleted: { $ne: true } };
+    if (orderStatus) match.orderStatus = orderStatus;
+    if (paymentStatus) match.paymentStatus = paymentStatus;
+    if (from || to) {
+        match.createdAt = {};
+        if (from) match.createdAt.$gte = new Date(from + 'T00:00:00.000Z');
+        if (to) match.createdAt.$lte = new Date(to + 'T23:59:59.999Z');
+    }
+
+    const pipeline = [
+        { $match: match },
+        ...(q && q.trim()
+            ? [{
+                $match: {
+                    $or: [
+                        { _id: isValidId(q) ? new mongoose.Types.ObjectId(q) : null },
+                        { notes: new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+                        { 'items.skuSnapshot': new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') },
+                        { 'items.titleSnapshot': new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }
+                    ]
+                }
+            }]
+            : []),
+        {
+            $lookup: {
+                from: 'users',
+                localField: 'user',
+                foreignField: '_id',
+                as: 'usr'
+            }
+        },
+        { $addFields: { userEmail: { $arrayElemAt: ['$usr.email', 0] } } },
+        {
+            $project: {
+                _id: 1,
+                user: 1,
+                userEmail: 1,
+                createdAt: 1,
+                orderStatus: 1,
+                paymentStatus: 1,
+                paymentGateway: 1,
+                total: 1,
+                currency: 1,
+                itemsCount: { $size: { $ifNull: ['$items', []] } }
+            }
+        },
+        ...(() => {
+            switch (sort) {
+                case 'oldest': return [{ $sort: { createdAt: 1, _id: 1 } }];
+                case 'total_asc': return [{ $sort: { total: 1, _id: 1 } }];
+                case 'total_desc': return [{ $sort: { total: -1, _id: 1 } }];
+                default: return [{ $sort: { createdAt: -1, _id: 1 } }];
+            }
+        })(),
+        {
+            $facet: {
+                items: [{ $skip: skip }, { $limit: perPage }],
+                total: [{ $count: 'count' }]
+            }
+        }
+    ];
+
+    const [{ items, total }] = await SaleOrder.aggregate(pipeline);
+    const totalItems = total?.[0]?.count || 0;
+
+    return res.json({
+        page: pageNum,
+        limit: perPage,
+        totalItems,
+        totalPages: Math.ceil(totalItems / perPage),
+        items
+    });
+});

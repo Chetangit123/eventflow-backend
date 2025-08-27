@@ -5,6 +5,11 @@ const AppError = require("../utils/AppError");
 const ProductSale = require("../models/ProductSale");
 const QueryBuilder = require("../services/queryBuilder");
 
+const toInt = (v, d) => {
+    const x = parseInt(v, 10);
+    return Number.isFinite(x) && x > 0 ? x : d;
+};
+
 const isValidId = (id) => mongoose.isValidObjectId(id);
 
 const effectivePriceOf = (variant) => {
@@ -110,5 +115,6 @@ module.exports = {
     applyCouponIfAny,
     loadProductAndVariant,
     buildOrderItemSnapshot,
-    decrementStockAtomic
+    decrementStockAtomic,
+    toInt
 };
