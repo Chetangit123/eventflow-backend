@@ -922,7 +922,6 @@ exports.getMyOrderById = catchAsync(async (req, res, next) => {
     const { orderId } = req.query;
     if (!isValidId(orderId)) return next(new AppError('Invalid orderId', 400));
 
-    // Aggregate to enrich each line with current product/variant images
     const pipeline = [
         {
             $match: {
@@ -932,6 +931,22 @@ exports.getMyOrderById = catchAsync(async (req, res, next) => {
             }
         },
         { $limit: 1 },
+
+        // ----- lookup for address -----
+        {
+            $lookup: {
+                from: 'addresses',
+                localField: 'address',
+                foreignField: '_id',
+                as: 'addressData'
+            }
+        },
+        {
+            $addFields: {
+                address: { $arrayElemAt: ['$addressData', 0] }
+            }
+        },
+        { $project: { addressData: 0 } },
 
         // Unwind items to lookup per line
         { $unwind: { path: '$items', preserveNullAndEmptyArrays: true } },
@@ -983,7 +998,7 @@ exports.getMyOrderById = catchAsync(async (req, res, next) => {
             }
         },
 
-        // Merge looked-up data into item
+        // Merge looked-up product data into item
         {
             $addFields: {
                 'items.image': { $arrayElemAt: ['$prod.image', 0] },
@@ -1012,7 +1027,7 @@ exports.getMyOrderById = catchAsync(async (req, res, next) => {
                 newRoot: {
                     _id: '$_id',
                     user: '$doc.user',
-                    address: '$doc.address',
+                    address: '$doc.address',  // yaha already lookup wala full address aa gaya
                     paymentMethod: '$doc.paymentMethod',
                     paymentStatus: '$doc.paymentStatus',
                     paymentGateway: '$doc.paymentGateway',
@@ -1034,18 +1049,13 @@ exports.getMyOrderById = catchAsync(async (req, res, next) => {
                     items: '$items'
                 }
             }
-        }
-        ,
+        },
 
-        // add a derived timeline for UX (optional)
+        // add timeline
         {
             $addFields: {
                 timeline: [
-                    {
-                        label: 'Placed',
-                        at: '$createdAt',
-                        done: true
-                    },
+                    { label: 'Placed', at: '$createdAt', done: true },
                     {
                         label: 'Packed',
                         at: '$packedAt',
@@ -1064,7 +1074,6 @@ exports.getMyOrderById = catchAsync(async (req, res, next) => {
                 ]
             }
         }
-
     ];
 
     const data = await SaleOrder.aggregate(pipeline);
@@ -1072,6 +1081,7 @@ exports.getMyOrderById = catchAsync(async (req, res, next) => {
 
     return successRes(res, 200, true, 'Order fetched', data[0]);
 });
+
 
 
 

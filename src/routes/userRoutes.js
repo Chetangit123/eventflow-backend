@@ -25,6 +25,10 @@ router.post('/create-address', protect('user'), userAuthController.createAddress
 
 /** ==================== Address Routes ==================== */
 router.post('/add-address', protect('user'), userAuthController.createAddress);
+router.get('/get-all-address', protect('user'), userAuthController.getAllAddresses);
+router.get('/get-address-by-id', protect('user'), userAuthController.getAddressById);
+router.put('/update-address', protect('user'), userAuthController.updateAddress);
+router.put('/delete-address', protect('user'), userAuthController.deleteAddress);
 
 /** event Details Routes */
 router.get('/get-all-events', eventManagementController.getAllEvents);
