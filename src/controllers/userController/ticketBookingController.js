@@ -35,7 +35,7 @@ async function generateTicketId(eventCode) {
 }
 
 const USE_PDF = false; // true => PDF, false => PNG
-
+/**
 exports.bookTickets = catchAsync(async (req, res, next) => {
     const start = Date.now();
     const { eventSession, event, quantity, attendeeDetails, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
@@ -217,6 +217,53 @@ exports.bookTickets = catchAsync(async (req, res, next) => {
         }
     });
 });
+*/
+
+// src/controllers/userController/ticketBookingController.js
+exports.bookTickets = catchAsync(async (req, res, next) => {
+    const { eventSession, event, quantity, attendeeDetails, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+    const userId = req.user._id;
+
+    if (!eventSession || !event || !quantity || !attendeeDetails?.length) {
+        return next(new AppError("All fields are required", 400));
+    }
+
+    const findUser = await User.findOne({ _id: userId, isDeleted: false });
+    if (!findUser) return next(new AppError("User not found", 404));
+
+    const eventData = await Event.findOne({ _id: event, isDeleted: false });
+    if (!eventData) return next(new AppError("Event not found", 404));
+
+    const sessionData = await EventSession.findOne({ _id: eventSession, event, isDeleted: false });
+    if (!sessionData) return next(new AppError("Event session not found", 404));
+
+    const pricePerTicket = sessionData.pricePerTicket || eventData.price || 0;
+    const totalAmount = pricePerTicket * quantity;
+
+    const booking = await TicketBooking.create({
+        user: userId,
+        eventSession,
+        event,
+        quantity,
+        attendeeDetails,
+        pricePerTicket,
+        totalAmount,
+        paymentMethod: "razorpay",
+        paymentStatus: "paid",
+        ticketStatus: "pending",   // ✅ abhi bas pending
+        razorpayOrderId,
+        razorpayPaymentId,
+        razorpaySignature,
+        tickets: []
+    });
+
+    return res.status(201).json({
+        success: true,
+        message: "Booking confirmed! Tickets will be generated shortly.",
+        bookingId: booking._id
+    });
+});
+
 
 exports.getTicketBookings = catchAsync(async (req, res, next) => {
     const userId = req?.user?.id;
