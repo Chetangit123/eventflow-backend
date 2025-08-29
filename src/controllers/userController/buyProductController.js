@@ -451,7 +451,7 @@ exports.getSaleProductById = catchAsync(async (req, res, next) => {
  */
 exports.buyNow = catchAsync(async (req, res, next) => {
     const userId = req.user?._id;
-    const { productId = "68ad53a4ad4fcd7c26ac075c", variantId = "68ad53a4ad4fcd7c26ac075e", qty = 1, addressId, paymentMethod, coupon, gateway = 'razorpay' } = req.body;
+    const { productId, variantId, qty = 1, addressId, paymentMethod, coupon, gateway = 'razorpay' } = req.body;
 
     if (!userId) return next(new AppError('Unauthorized', 401));
     if (!isValidId(productId) || !isValidId(variantId)) return next(new AppError('Invalid productId or variantId', 400));

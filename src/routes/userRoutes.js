@@ -37,6 +37,7 @@ router.get('/get-event-session', eventManagementController.getEventSessionBySess
 
 /** Ticket Booking Routes */
 router.post('/book-tickets', protect('user'), TicketBookingController.bookTickets);
+router.post('/verify-ticket-payment', protect('user'), TicketBookingController.verifyTicketPayment);
 router.get('/get-all-ticket-bookings', protect('user'), TicketBookingController.getTicketBookings);
 router.get('/get-booking-by-id', protect('user'), TicketBookingController.getBookingById);
 

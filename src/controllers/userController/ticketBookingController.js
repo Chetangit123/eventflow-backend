@@ -17,6 +17,9 @@ const { thanksMailToUser } = require("../../emailTemplates/thanksMailTemplate");
 const User = require("../../models/User");
 const { formatTime24to12 } = require("../../utils/helper");
 const QueryBuilder = require("../../services/queryBuilder");
+const Razorpay = require("razorpay");
+const ENVIRONMENT = require("../../config/env");
+const crypto = require("crypto");
 
 
 async function generateTicketId(eventCode) {
@@ -219,9 +222,14 @@ exports.bookTickets = catchAsync(async (req, res, next) => {
 });
 */
 
+const razorpay = new Razorpay({
+    key_id: ENVIRONMENT.RAZORPAY_KEY_ID,
+    key_secret: ENVIRONMENT.RAZORPAY_KEY_SECRET,
+});
+
 // src/controllers/userController/ticketBookingController.js
 exports.bookTickets = catchAsync(async (req, res, next) => {
-    const { eventSession, event, quantity, attendeeDetails, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+    const { eventSession, event, quantity, attendeeDetails } = req.body;
     const userId = req.user._id;
 
     if (!eventSession || !event || !quantity || !attendeeDetails?.length) {
@@ -240,6 +248,18 @@ exports.bookTickets = catchAsync(async (req, res, next) => {
     const pricePerTicket = sessionData.pricePerTicket || eventData.price || 0;
     const totalAmount = pricePerTicket * quantity;
 
+    // ✅ Razorpay order create
+    const razorpayOrder = await razorpay.orders.create({
+        amount: totalAmount * 100, // paise me
+        currency: "INR",
+        receipt: `rcpt_${Date.now()}`,
+        notes: {
+            userId: userId.toString(),
+            eventId: event.toString(),
+        },
+    });
+
+    // ✅ Booking create (pending state)
     const booking = await TicketBooking.create({
         user: userId,
         eventSession,
@@ -249,20 +269,47 @@ exports.bookTickets = catchAsync(async (req, res, next) => {
         pricePerTicket,
         totalAmount,
         paymentMethod: "razorpay",
-        paymentStatus: "paid",
-        ticketStatus: "pending",   // ✅ abhi bas pending
-        razorpayOrderId,
-        razorpayPaymentId,
-        razorpaySignature,
-        tickets: []
+        paymentStatus: "pending",
+        ticketStatus: "pending",
+        razorpayOrderId: razorpayOrder.id,
+        razorpayPaymentId: null,
+        razorpaySignature: null,
+        tickets: [],
     });
-
-    return res.status(201).json({
-        success: true,
-        message: "Booking confirmed! Tickets will be generated shortly.",
-        bookingId: booking._id
-    });
+    return successRes(res, 201, true, "Booking created, complete payment to confirm.", { order: razorpayOrder, bookingId: booking._id });
 });
+
+exports.verifyTicketPayment = catchAsync(async (req, res, next) => {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !orderId) {
+        return next(new AppError("All fields are required", 400));
+    }
+
+    // ✅ Signature verify
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+        .createHmac("sha256", ENVIRONMENT.RAZORPAY_KEY_SECRET)
+        .update(body.toString())
+        .digest("hex");
+
+    if (expectedSignature !== razorpay_signature) {
+        return next(new AppError("Payment verification failed", 400));
+    }
+
+    // ✅ Booking update
+    const booking = await TicketBooking.findByIdAndUpdate(
+        orderId,
+        {
+            razorpayPaymentId: razorpay_payment_id,
+            razorpaySignature: razorpay_signature,
+            paymentStatus: "paid",
+        },
+        { new: true }
+    );
+    return successRes(res, 200, true, "Payment verified successfully! Tickets will be generated.", booking);
+});
+
 
 
 exports.getTicketBookings = catchAsync(async (req, res, next) => {

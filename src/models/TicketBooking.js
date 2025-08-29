@@ -28,6 +28,7 @@ const TicketBookingSchema = new Schema({
     ticketStatus: {
         type: String, enum: ['pending', 'processing', 'retrying', 'confirmed', 'failed'], default: 'pending'
     }, // new
+    paymentInitiatedAt: { type: Date, default: Date.now },
     razorpayOrderId: String,
     razorpayPaymentId: String,
     razorpaySignature: String,
