@@ -68,7 +68,8 @@ router.get('/order-details', protect('user'), buyProductController.getMyOrderByI
 
 
 /** =================== Rent Product Routes ================ */
-
+router.get('/get-rent-products', rentBookingController.rentProductList);
+router.get('/get-rent-product-details', rentBookingController.getRentProductById);
 router.post('/create-rent-booking', protect('user'), rentBookingController.createRentBooking);
 
 module.exports = router;

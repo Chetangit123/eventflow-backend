@@ -25,7 +25,7 @@ const ProductRentSchema = new Schema({
     currency: { type: String, default: 'INR' },
     variants: { type: [VariantSchema], default: [] },
     tags: { type: [String], default: [] },
-    status: { type: String, enum: ['available', 'unavailable'], default: 'available' },
+    status: { type: String, enum: ['active', 'inactive'], default: 'active' },
     category: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     totalStock: { type: Number, default: 0, min: 0 },
     gender: { type: String, enum: ["men", "women", 'boys', 'girls', "unisex", "all"] },

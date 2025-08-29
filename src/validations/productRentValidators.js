@@ -24,7 +24,7 @@ module.exports = {
         currency: Joi.string().default('INR'),
         variants: Joi.array().items(variantSchema).default([]),
         tags: Joi.array().items(Joi.string()).required(),
-        status: Joi.string().valid('available', 'unavailable').default('available'),
+        status: Joi.string().valid('active', 'inactive').default('active'),
         category: Joi.string().hex().length(24).required(),
         gender: Joi.string().valid("men", "women", "boys", "girls", "unisex", "all").default("unisex")
     }),
@@ -39,14 +39,14 @@ module.exports = {
         currency: Joi.string().optional(),
         variants: Joi.array().items(variantSchema).optional(),
         tags: Joi.array().items(Joi.string()).optional(),
-        status: Joi.string().valid('available', 'unavailable').optional(),
+        status: Joi.string().valid('active', 'inactive').optional(),
         category: Joi.string().hex().length(24).optional()
     }),
 
     listQuerySchema: Joi.object({
         search: Joi.string().optional().allow('', null),
         category: Joi.string().hex().length(24).optional(),
-        status: Joi.string().valid('available', 'unavailable').optional(),
+        status: Joi.string().valid('active', 'inactive').optional(),
         minPrice: Joi.number().min(0).optional(),
         maxPrice: Joi.number().min(0).optional(),
         tags: Joi.string().optional(), // comma-separated
