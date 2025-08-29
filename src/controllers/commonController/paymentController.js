@@ -49,13 +49,13 @@ exports.verifyRazorpayPayment = catchAsync(async (req, res, next) => {
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
         return next(new AppError('razorpay_order_id, razorpay_payment_id and razorpay_signature are required', 400));
     }
-    if (!process.env.RAZORPAY_KEY_SECRET) {
+    if (!ENVIRONMENT.RAZORPAY_KEY_SECRET) {
         return next(new AppError('Server misconfiguration: missing RAZORPAY_KEY_SECRET', 500));
     }
 
     // 2) verify signature (HMAC SHA256 of order_id|payment_id)
     const generatedSignature = crypto
-        .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+        .createHmac('sha256', ENVIRONMENT.RAZORPAY_KEY_SECRET)
         .update(`${razorpay_order_id}|${razorpay_payment_id}`)
         .digest('hex');
 
@@ -69,7 +69,7 @@ exports.verifyRazorpayPayment = catchAsync(async (req, res, next) => {
         order = await SaleOrder.findById(orderId);
     }
     if (!order) {
-        order = await SaleOrder.findOne({ paymentIntentId: razorpay_order_id });
+        order = await SaleOrder.findOne({ paymentIntentId: razorpay_order_id, _id: orderId });
     }
 
     if (!order) {

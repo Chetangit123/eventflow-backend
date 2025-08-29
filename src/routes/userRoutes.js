@@ -10,6 +10,8 @@ const paymentController = require("../controllers/commonController/paymentContro
 const rentBookingController = require("../controllers/userController/rentBookingController");
 const { protect } = require("../utils/jwt");
 const { uploadUserProfile } = require("../services/multer");
+const bookingValidation = require("../validations/bookingValidation");
+const { validateBody } = require("../middlewares/validate");
 
 
 
@@ -70,6 +72,7 @@ router.get('/order-details', protect('user'), buyProductController.getMyOrderByI
 /** =================== Rent Product Routes ================ */
 router.get('/get-rent-products', rentBookingController.rentProductList);
 router.get('/get-rent-product-details', rentBookingController.getRentProductById);
-router.post('/create-rent-booking', protect('user'), rentBookingController.createRentBooking);
+router.post('/rent-now', protect('user'), validateBody(bookingValidation.rentNowValidation), rentBookingController.rentNow);
+router.post('/verify-rent-payment', protect('user'), rentBookingController.verifyRentPayment);
 
 module.exports = router;

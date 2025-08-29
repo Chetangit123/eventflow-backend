@@ -6,6 +6,19 @@ const AppError = require("../../utils/AppError");
 const catchAsync = require("../../utils/catchAsync");
 const { successRes } = require("../../utils/responseFormatter");
 const mongoose = require("mongoose");
+const { createPaymentForOrder } = require("../commonController/checkoutController");
+const { isValidId } = require("../../helper/productHelper");
+const QueryBuilder = require("../../services/queryBuilder");
+const ENVIRONMENT = require("../../config/env");
+const crypto = require("crypto");
+const Razorpay = require('razorpay');
+const { verifyRazorpaySignature } = require("../../services/payment.service");
+
+
+const rpInstance = () => new Razorpay({
+    key_id: ENVIRONMENT.RAZORPAY_KEY_ID,
+    key_secret: ENVIRONMENT.RAZORPAY_KEY_SECRET
+});
 
 
 async function mapAddressSnapshot(addressDoc) {
@@ -420,47 +433,65 @@ exports.getRentProductById = catchAsync(async (req, res, next) => {
     return successRes(res, 200, true, "Product found", response);
 });
 
-exports.createRentBooking = async (req, res, next) => {
-    // default {} so destructuring safe ho jaye
-    const {
-        items: clientItems,
-        startDate,
-        endDate,
-        pickupAddressId,
-        returnAddressId,
-        deliveryMethod
-    } = req.body || {};
+/**============== Rent Booking ============== */
 
-    // ✅ Step 1: Basic validations
-    if (!clientItems || !Array.isArray(clientItems) || !clientItems.length) {
-        return next(new AppError("Items are required and must be a non-empty array", 400));
-    }
-    if (!startDate || !endDate) {
-        return next(new AppError("Start date and end date are required", 400));
-    }
+// controllers/rent.controller.js
+
+function calculateRentAmount({ product, variant, qty, startDate, endDate }) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
+
+    // base rent
+    const rent = product.rentPricePerDay * qty * days;
+
+    // deposit (optional)
+    const deposit = product.deposit || 0;
+
+    return {
+        total: rent + deposit,
+        currency: product.currency || "INR",
+        rent,
+        deposit,
+        days
+    };
+}
+
+exports.rentNow = catchAsync(async (req, res, next) => {
+    const userId = req.user?._id;
+    const { productId, variantId, qty = 1, startDate, endDate, addressId, paymentMethod, gateway = 'razorpay' } = req.body;
 
     const session = await mongoose.startSession();
     session.startTransaction();
+
     try {
-        const items = [];
+        const product = await ProductRent.findById(productId).session(session);
+        const variant = product?.variants.id(variantId);
+        if (!product || !variant) throw new AppError('Product/Variant not found', 404);
 
-        for (const ci of clientItems) {
-            if (!ci.productId || !ci.variantId) {
-                throw new Error("Each item must have productId and variantId");
-            }
+        if (variant.stock < qty) throw new AppError('Insufficient stock', 400);
 
-            const product = await ProductRent.findById(ci.productId).lean();
-            if (!product) throw new Error("Product not found: " + ci.productId);
+        // calculate rent
+        const amountInfo = calculateRentAmount({ product, variant, qty, startDate, endDate });
+        console.log(amountInfo, "amountInfo")
+        // decrease stock
+        variant.stock -= qty;
+        product.totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
+        await product.save({ session });
 
-            const variant = product.variants.find(v => String(v._id) === String(ci.variantId));
-            if (!variant) throw new Error("Variant not found: " + ci.variantId);
+        // ✅ fetch address for snapshot
+        const address = await Address.findOne({ _id: addressId, user: userId, isDeleted: false });
+        if (!address) throw new AppError('Address not found', 404);
 
-            items.push({
+        // create booking
+        const [booking] = await RentBooking.create([{
+            user: userId,
+            items: [{
                 product: product._id,
                 variantId: variant._id,
                 size: variant.size,
-                qty: Number(ci.qty || 1),
-                pricePerDaySnapshot: (variant.price != null) ? variant.price : product.rentPricePerDay,
+                qty,
+                pricePerDaySnapshot: product.rentPricePerDay,
                 productSnapshot: {
                     _id: product._id,
                     title: product.title,
@@ -474,35 +505,157 @@ exports.createRentBooking = async (req, res, next) => {
                         size: variant.size,
                         sku: variant.sku
                     },
-                    images: variant.images || []
+                    images: product.images || []
                 }
-            });
-        }
-
-        // ✅ Step 2: Address snapshots
-        const pickupDoc = pickupAddressId ? await Address.findById(pickupAddressId).lean() : null;
-        const returnDoc = returnAddressId ? await Address.findById(returnAddressId).lean() : null;
-
-        const [booking] = await RentBooking.create([{
-            user: req.user._id,
-            items,
+            }],
             startDate,
             endDate,
-            pickupAddress: pickupAddressId,
-            pickupAddressSnapshot: await mapAddressSnapshot(pickupDoc),
-            returnAddress: returnAddressId,
-            returnAddressSnapshot: await mapAddressSnapshot(returnDoc),
-            deliveryMethod
+            paymentMethod,
+            rentAmount: amountInfo.rent,
+            depositAmount: amountInfo.deposit,
+            total: amountInfo.total,
+            currency: amountInfo.currency,
+            days: amountInfo.days,
+            deposit: amountInfo.deposit,
+
+            // ✅ save address ref + snapshot
+            pickupAddress: address._id,
+            pickupAddressSnapshot: {
+                fullName: address.fullName,
+                phone: address.phone,
+                labeL: address.label, // careful spelling
+                line1: address.line1,
+                line2: address.line2,
+                city: address.city,
+                state: address.state,
+                pincode: address.pincode,
+                country: address.country
+            }
         }], { session });
 
         await session.commitTransaction();
         session.endSession();
-        return successRes(res, 201, true, "Booking created successfully", booking);
+
+        let payment = null;
+        if (paymentMethod === 'online') {
+            payment = await createPaymentForOrder({
+                order: booking,
+                user: req.user,
+                gateway
+            });
+        }
+        return successRes(res, 201, true, "Booking Created", {
+            status: booking.status,
+            order: booking,
+            payment
+        });
 
     } catch (err) {
-        await session.abortTransaction();
+        if (session.inTransaction()) await session.abortTransaction();
         session.endSession();
-        return next(new AppError(err.message, 400));
+        return next(new AppError(err.message, err.statusCode || 500));
     }
-};
+});
+
+exports.verifyRentPayment = catchAsync(async (req, res, next) => {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;
+
+    // 1) basic validation
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+        return next(new AppError('razorpay_order_id, razorpay_payment_id and razorpay_signature are required', 400));
+    }
+    if (!ENVIRONMENT.RAZORPAY_KEY_SECRET) {
+        return next(new AppError('Server misconfiguration: missing RAZORPAY_KEY_SECRET', 500));
+    }
+
+    // 2) verify signature (HMAC SHA256 of order_id|payment_id)
+    const generatedSignature = crypto
+        .createHmac('sha256', ENVIRONMENT.RAZORPAY_KEY_SECRET)
+        .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+        .digest('hex');
+
+    if (generatedSignature !== String(razorpay_signature)) {
+        return next(new AppError('Invalid signature - verification failed', 400));
+    }
+
+    // 3) find local order (try provided orderId first, then paymentIntentId mapping)
+    let order = null;
+    if (orderId && mongoose.isValidObjectId(orderId)) {
+        order = await RentBooking.findById(orderId);
+    }
+    if (!order) {
+        order = await RentBooking.findOne({ paymentIntentId: razorpay_order_id, _id: orderId });
+    }
+
+    if (!order) {
+        // Not found locally — still possible (race / missing mapping). Return helpful message.
+        return next(new AppError('Order not found for the provided payment/order id', 404));
+    }
+
+    // 4) idempotency: if already paid, return success
+    if (order.paymentStatus === 'paid') {
+        return successRes(res, 200, 'Payment already verified for this order', order);
+    }
+
+    // 5) optional sanity checks by fetching payment entity from Razorpay
+    const rp = rpInstance();
+    let paymentEntity = null;
+    try {
+        paymentEntity = await rp.payments.fetch(razorpay_payment_id);
+    } catch (err) {
+        // If fetch fails, we can still accept signature verification as valid, but it's safer to fail here.
+        // Return a 502 so client can retry or use webhook as fallback.
+        return next(new AppError('Unable to fetch payment details from Razorpay: ' + (err.message || err), 502));
+    }
+
+    // Ensure payment belongs to order
+    if (String(paymentEntity.order_id) !== String(razorpay_order_id)) {
+        return next(new AppError('Payment does not belong to the provided order (order id mismatch)', 400));
+    }
+
+    // Check payment status: prefer 'captured' (payment completed)
+    // Some integrations may show 'authorized' depending on capture mode; treat 'captured' as success.
+    const successStatuses = ['captured', 'authorized'];
+    if (!successStatuses.includes(paymentEntity.status)) {
+        return next(new AppError(`Payment status is '${paymentEntity.status}' — not a successful payment`, 400));
+    }
+
+    // 6) optional amount check (razorpay amounts in paise)
+    const paidAmountPaise = Number(paymentEntity.amount || 0);
+    const expectedPaise = Math.round(Number(order.total || 0) * 100); // order.total assumed in rupees
+
+    let amountMismatch = false;
+    if (paidAmountPaise !== expectedPaise) {
+        amountMismatch = true;
+        // don't automatically fail — record mismatch for manual reconciliation
+        order.notes = (order.notes ? order.notes + ' | ' : '') +
+            `PAYMENT_AMOUNT_MISMATCH(razorpay=${paidAmountPaise},expected=${expectedPaise})`;
+    }
+
+    // 7) update order idempotently
+    order.paymentStatus = 'paid';
+    order.paymentGateway = 'razorpay';
+    order.paymentIntentId = razorpay_order_id;
+    order.paymentResponse = {
+        verifiedAt: new Date(),
+        razorpay_payment_id,
+        razorpay_order_id,
+        raw: paymentEntity,
+        amountMismatch
+    };
+    order.orderStatus = 'booked'; // keep or set placed
+    await order.save();
+    return successRes(res, 200, 'Payment verified and order updated', {
+        order,
+        note: amountMismatch ? 'Amount mismatch detected — flagged in order.notes' : undefined,
+    })
+
+});
+
+
+
+
+
+
+
 

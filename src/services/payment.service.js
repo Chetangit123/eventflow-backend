@@ -31,7 +31,7 @@ async function createRazorpayOrder({ amount, currency = 'INR', receipt, notes = 
  * rawBody should be raw request body string (not parsed object)
  */
 function verifyRazorpaySignature(rawBody, signature) {
-    const expected = crypto.createHmac('sha256', process.env.RAZORPAY_WEBHOOK_SECRET)
+    const expected = crypto.createHmac('sha256', ENVIRONMENT.RAZORPAY_WEBHOOK_SECRET)
         .update(rawBody)
         .digest('hex');
     return expected === signature;

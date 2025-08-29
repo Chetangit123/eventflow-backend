@@ -1,14 +1,15 @@
 // seedAdmin.js
 const mongoose = require("mongoose");
 const User = require("../models/User");
+const ENVIRONMENT = require("../config/env");
 require("dotenv").config();
 
 async function seedAdmin() {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
+        await mongoose.connect(ENVIRONMENT.MONGO_URI);
 
-        const adminEmail = process.env.ADMIN_EMAIL || "admin@yopmail.com";
-        const adminPassword = process.env.ADMIN_PASSWORD || "Developer123#";
+        const adminEmail = ENVIRONMENT.ADMIN_EMAIL || "admin@yopmail.com";
+        const adminPassword = ENVIRONMENT.ADMIN_PASSWORD || "Developer123#";
 
         let admin = await User.findOne({ email: adminEmail });
 

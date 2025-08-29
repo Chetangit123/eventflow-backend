@@ -42,6 +42,7 @@ ProductRentSchema.pre("save", function (next) {
     });
     next();
 });
+
 softDelete(ProductRentSchema);
 
 module.exports = mongoose.model('ProductRent', ProductRentSchema);

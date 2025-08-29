@@ -3,13 +3,14 @@ const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const app = require("./app");
 const { setupSocket } = require("./src/socket/socketHandler");
+const ENVIRONMENT = require("./src/config/env");
 
 dotenv.config();
 const server = http.createServer(app);
 setupSocket(server); // Attach socket to server
 
-const PORT = process.env.PORT || 8000;
-const DB = process.env.MONGO_URI;
+const PORT = ENVIRONMENT.PORT || 8000;
+const DB = ENVIRONMENT.MONGO_URI;
 
 mongoose
     .connect(DB)

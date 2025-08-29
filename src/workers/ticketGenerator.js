@@ -2,9 +2,10 @@ const cron = require("node-cron");
 const TicketBooking = require("../models/TicketBooking");
 const { generateTicketsForBooking } = require("../services/ticket.service");
 const sendMail = require("../utils/sendMail");
+const ENVIRONMENT = require("../config/env");
 
 const MAX_RETRIES = 3;
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "superadmin@yopmail.com";
+const ADMIN_EMAIL = ENVIRONMENT.ADMIN_EMAIL || "superadmin@yopmail.com";
 
 cron.schedule("*/1 * * * *", async () => {
     console.log("🎯 Ticket Worker running...");

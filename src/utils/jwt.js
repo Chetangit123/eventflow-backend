@@ -2,8 +2,9 @@ const jwt = require("jsonwebtoken");
 const { promisify } = require("util");
 const AppError = require("../utils/AppError");
 const User = require("../models/User");
+const ENVIRONMENT = require("../config/env");
 
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret_key";
+const JWT_SECRET = ENVIRONMENT.JWT_SECRET || "your_jwt_secret_key";
 const JWT_EXPIRES_IN = "365d"; // token expiry
 
 // ✅ Sign token
