@@ -13,7 +13,7 @@ const MAX_ADDRESSES = parseInt(process.env.MAX_ADDRESSES_PER_USER, 10) || 20;
 // ---------- CREATE ----------
 exports.createAddress = catchAsync(async (req, res, next) => {
     const userId = req.userId;
-    const { label, line1, line2, city, state, pincode, country, isDefault, lat, lng } = req.body;
+    const { fullName, phone, label, line1, line2, city, state, pincode, country, isDefault, lat, lng } = req.body;
 
     if (!line1 || !city || !state || !pincode) {
         return next(new AppError("line1, city, state and pincode are required", 400));
@@ -43,6 +43,8 @@ exports.createAddress = catchAsync(async (req, res, next) => {
 
         const [address] = await Address.create([{
             user: userId,
+            fullName,
+            phone,
             label,
             line1,
             line2,
@@ -118,7 +120,7 @@ exports.getAddressById = catchAsync(async (req, res, next) => {
 // ---------- UPDATE ----------
 exports.updateAddress = catchAsync(async (req, res, next) => {
     const userId = req.userId;
-    const { addressId, label, line1, line2, city, state, pincode, country, isDefault, lat, lng } = req.body;
+    const { fullName, phone, addressId, label, line1, line2, city, state, pincode, country, isDefault, lat, lng } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(addressId)) {
         return next(new AppError("Invalid address id", 400));
@@ -153,6 +155,8 @@ exports.updateAddress = catchAsync(async (req, res, next) => {
 
         // 🔨 Step 3: update fields via QueryBuilder.update()
         const updateData = {
+            fullName: fullName ?? address.fullName,
+            phone: phone ?? address.phone,
             label: label ?? address.label,
             line1: line1 ?? address.line1,
             line2: line2 ?? address.line2,

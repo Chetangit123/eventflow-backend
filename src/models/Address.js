@@ -5,6 +5,8 @@ const softDelete = require('../utils/softDelete');
 
 const AddressSchema = new Schema({
     user: { type: Schema.Types.ObjectId, ref: 'User', required: false }, // optional: may store generic addresses
+    fullName: { type: String, required: true },
+    phone: { type: String, required: true },
     label: { type: String }, // home, office
     line1: { type: String, required: true },
     line2: { type: String },

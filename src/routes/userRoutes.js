@@ -7,6 +7,7 @@ const eventManagementController = require("../controllers/commonController/event
 const cartController = require("../controllers/userController/cartController");
 const buyProductController = require("../controllers/userController/buyProductController");
 const paymentController = require("../controllers/commonController/paymentController");
+const rentBookingController = require("../controllers/userController/rentBookingController");
 const { protect } = require("../utils/jwt");
 const { uploadUserProfile } = require("../services/multer");
 
@@ -63,5 +64,11 @@ router.get('/preview-checkout', protect('user'), buyProductController.previewChe
 router.post('/verify-razorpay-payment', protect('user'), paymentController.verifyRazorpayPayment);
 router.get('/my-orders', protect('user'), buyProductController.getMyOrders);
 router.get('/order-details', protect('user'), buyProductController.getMyOrderById);
+
+
+
+/** =================== Rent Product Routes ================ */
+
+router.post('/create-rent-booking', protect('user'), rentBookingController.createRentBooking);
 
 module.exports = router;
