@@ -124,7 +124,6 @@ exports.getRentProducts = catchAsync(async (req, res, next) => {
     });
 });
 
-
 exports.getRentProduct = catchAsync(async (req, res, next) => {
     const productId = req.query?.productId;
     if (!mongoose.Types.ObjectId.isValid(productId)) return next(new AppError('Invalid product id', 400));

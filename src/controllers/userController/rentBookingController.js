@@ -1,18 +1,15 @@
 const Address = require("../../models/Address");
 const ProductRent = require("../../models/ProductRent");
-const ProductSale = require("../../models/ProductSale");
 const RentBooking = require("../../models/RentBooking");
 const AppError = require("../../utils/AppError");
 const catchAsync = require("../../utils/catchAsync");
 const { successRes } = require("../../utils/responseFormatter");
 const mongoose = require("mongoose");
 const { createPaymentForOrder } = require("../commonController/checkoutController");
-const { isValidId } = require("../../helper/productHelper");
 const QueryBuilder = require("../../services/queryBuilder");
 const ENVIRONMENT = require("../../config/env");
 const crypto = require("crypto");
 const Razorpay = require('razorpay');
-const { verifyRazorpaySignature } = require("../../services/payment.service");
 
 
 const rpInstance = () => new Razorpay({
