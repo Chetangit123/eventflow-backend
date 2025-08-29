@@ -8,9 +8,11 @@ const adminProductController = require("../controllers/adminController/adminProd
 const saleProductValidation = require("../validations/saleProductValidation");
 const adminCategoryController = require("../controllers/adminController/adminCategoryController");
 const adminOrderManagementController = require("../controllers/adminController/adminOrderManagementController");
+const adminRentProductController = require("../controllers/adminController/adminRentProductController");
 const { protect } = require("../utils/jwt");
 const { validateBody, validateQuery } = require("../middlewares/validate");
 const categoryValidation = require("../validations/categoryValidation");
+const productRentValidators = require("../validations/productRentValidators");
 
 //roles : superadmin, event_manager, gatekeeper
 
@@ -47,12 +49,19 @@ router.get('/get-category', protect('superadmin'), validateQuery(categoryValidat
 router.put('/update-category', protect('superadmin'), validateBody(categoryValidation.updateCategoryValidation), adminCategoryController.updateCategory);
 router.put('/delete-category', protect('superadmin'), validateBody(categoryValidation.deleteCategoryValidation), adminCategoryController.deleteCategory);
 
-/** Product Management */
+/** Sale Product Management */
 
 router.post('/create-product', protect('superadmin'), validateBody(saleProductValidation.createProductSchema), adminProductController.createSaleProduct);
 router.get('/get-all-sale-products', protect('superadmin'), adminProductController.getAllSalesProducts);
 router.get('/get-sales-product-by-id', protect('superadmin'), validateQuery(saleProductValidation.getProductByIdValidation), adminProductController.getSaleProductById);
 router.put('/update-sale-product', protect('superadmin'), validateBody(saleProductValidation.updateProductValidation), adminProductController.updateSaleProduct);
+
+/** Rent Product Management */
+router.post('/create-rent-product', protect('superadmin'), validateBody(productRentValidators.createProductSchema), adminRentProductController.createRentProduct);
+router.get('/get-all-rent-products', protect('superadmin'), adminRentProductController.getRentProducts);
+router.get('/get-rent-product-by-id', protect('superadmin'), adminRentProductController.getRentProduct);
+router.put('/update-rent-product', protect('superadmin'), validateBody(productRentValidators.updateProductSchema), adminRentProductController.updateRentProduct);
+router.put('/delete-rent-product', protect('superadmin'), adminRentProductController.deleteRentProduct);
 
 /** ====================== Order Management================= */
 router.get('/get-order-list', protect('superadmin'), adminOrderManagementController.adminListOrders);

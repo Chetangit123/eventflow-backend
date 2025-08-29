@@ -148,8 +148,17 @@ class QueryBuilder {
         const searchRegex = new RegExp(searchText, "i");
         const searchConditions = { $or: keys.map(key => ({ [key]: searchRegex })) };
 
-        // merge with existing filter using $and so count() uses same conditions
         this.filterConditions = { $and: [this.filterConditions, searchConditions] };
+        this.query = this.model.find(this.filterConditions);
+        return this;
+    }
+
+    rangeFilter(field, min = null, max = null) {
+        if (min != null || max != null) {
+            this.filterConditions[field] = {};
+            if (min != null) this.filterConditions[field].$gte = Number(min);
+            if (max != null) this.filterConditions[field].$lte = Number(max);
+        }
         this.query = this.model.find(this.filterConditions);
         return this;
     }
@@ -196,6 +205,14 @@ class QueryBuilder {
         return this;
     }
 
+    // ---------- LEAN ----------
+    lean() {
+        if (this.query && typeof this.query.lean === "function") {
+            this.query = this.query.lean();
+        }
+        return this;
+    }
+
     session(session) {
         if (this.query && typeof this.query.session === "function") {
             this.query = this.query.session(session);
@@ -209,3 +226,5 @@ class QueryBuilder {
 }
 
 module.exports = QueryBuilder;
+
+

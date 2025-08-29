@@ -23,7 +23,7 @@ const ProductSaleSchema = new Schema({
     status: { type: String, enum: ["active", "inactive", "draft"], default: "active" },
 
     variants: [VariantSchema],   // ✅ all variations here
-    gender: { type: String, enum: ["men", "women", 'boys', 'girls', "unisex"] },
+    gender: { type: String, enum: ["men", "women", 'boys', 'girls', "unisex", "all"] },
 
     createdBy: { type: Schema.Types.ObjectId, ref: "User" }
 }, { timestamps: true });
