@@ -28,7 +28,6 @@ exports.generateTicketsForBooking = async (bookingId) => {
         .populate("user");
 
     const findUser = booking?.user;
-    console.log(findUser, "findUser");
 
     if (!booking) return;
 

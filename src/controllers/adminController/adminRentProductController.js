@@ -12,7 +12,6 @@ const DEFAULT_POPULATE = 'category';
 
 exports.createRentProduct = catchAsync(async (req, res, next) => {
     let payload = req.body;
-    console.log("Payload:", payload);
 
     if (!payload || Object.keys(payload).length === 0) {
         return next(new AppError('Request body is empty', 400));

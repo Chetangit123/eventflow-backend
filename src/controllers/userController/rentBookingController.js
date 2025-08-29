@@ -270,7 +270,6 @@ exports.rentProductList = catchAsync(async (req, res, next) => {
     );
 
     const [{ items, total }] = await ProductRent.aggregate(pipeline);
-    console.log(items, "items")
     const totalItems = total?.[0]?.count || 0;
     return successRes(res, 200, true, 'Rent products fetched', {
         page: pageNum,
@@ -473,7 +472,6 @@ exports.rentNow = catchAsync(async (req, res, next) => {
 
         // calculate rent
         const amountInfo = calculateRentAmount({ product, variant, qty, startDate, endDate });
-        console.log(amountInfo, "amountInfo")
         // decrease stock
         variant.stock -= qty;
         product.totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
