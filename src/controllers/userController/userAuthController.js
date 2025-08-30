@@ -12,7 +12,10 @@ const MAX_ADDRESSES = parseInt(process.env.MAX_ADDRESSES_PER_USER, 10) || 20;
 
 // ---------- CREATE ----------
 exports.createAddress = catchAsync(async (req, res, next) => {
-    const userId = req.userId;
+    const userId = req.user._id;
+    if (!mongoose.isValidObjectId(userId)) {
+        return next(new AppError("Invalid UserId", 400))
+    }
     const { fullName, phone, label, line1, line2, city, state, pincode, country, isDefault, lat, lng } = req.body;
 
     if (!line1 || !city || !state || !pincode) {
@@ -34,7 +37,8 @@ exports.createAddress = catchAsync(async (req, res, next) => {
 
     try {
         if (isDefault) {
-            await Address.updateMany(
+            console.log(isDefault, "isDefault")
+            let updatedAddress = await Address.updateMany(
                 { user: userId, isDefault: true, isDeleted: { $ne: true } },
                 { $set: { isDefault: false } },
                 { session }
@@ -81,7 +85,7 @@ exports.getAllAddresses = catchAsync(async (req, res, next) => {
 
     const qb = new QueryBuilder(Address);
     qb.filter({ user: userId })
-        .search(search, ["label", "line1", "line2", "city", "state", "pincode"])
+        .search(search, ["fullName", "phone", "label", "line1", "line2", "city", "state", "pincode"])
         .sort({ createdAt: -1 })
         .paginate(page, limit);
 
@@ -119,7 +123,10 @@ exports.getAddressById = catchAsync(async (req, res, next) => {
 
 // ---------- UPDATE ----------
 exports.updateAddress = catchAsync(async (req, res, next) => {
-    const userId = req.userId;
+    const userId = req.user._id;
+    if (!mongoose.isValidObjectId(userId)) {
+        return next(new AppError("Invalid UserId", 400))
+    }
     const { fullName, phone, addressId, label, line1, line2, city, state, pincode, country, isDefault, lat, lng } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(addressId)) {
