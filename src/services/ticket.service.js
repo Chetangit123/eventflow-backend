@@ -10,14 +10,12 @@ const { thanksMailToUser } = require("../emailTemplates/thanksMailTemplate");
 
 const USE_PDF = false;
 
+const { v4: uuidv4 } = require("uuid");
+
 async function generateTicketId(eventCode) {
     const year = new Date().getFullYear();
-    while (true) {
-        const randomNum = Math.floor(10000 + Math.random() * 90000);
-        const ticketId = `${eventCode.toUpperCase()}-${year}-${randomNum}`;
-        const checkDuplicate = await TicketBooking.findOne({ "tickets.ticketId": ticketId });
-        if (!checkDuplicate) return ticketId;
-    }
+    const uniqueId = uuidv4().split("-")[0]; // sirf chhota part lena ho to
+    return `${eventCode.toUpperCase()}-${year}-${uniqueId}`;
 }
 
 exports.generateTicketsForBooking = async (bookingId) => {

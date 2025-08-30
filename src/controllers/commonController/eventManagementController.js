@@ -37,7 +37,6 @@ exports.uploadEventImages = catchAsync(async (req, res, next) => {
     return successRes(res, 201, true, "Files uploaded successfully", response);
 });
 
-
 exports.createEvent = catchAsync(async (req, res, next) => {
     const { title, slug, description, venueName, address, images, banner, startDate, endDate, createdBy } = req.body;
     const event = await new Event({ title, slug, description, venueName, address, images, banner, startDate, endDate, createdBy }).save();
