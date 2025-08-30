@@ -127,4 +127,9 @@ module.exports = {
         folder: "uploads/userAvatar",
         fileTypes: /jpeg|jpg|png/,
     }),
+
+    uploadProductImage: uploader("array", "images", {
+        folder: "uploads/productImages",
+        fileTypes: /jpeg|jpg|png/,
+    }, 5),
 };

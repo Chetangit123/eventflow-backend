@@ -5,6 +5,22 @@ const { successRes } = require("../../utils/responseFormatter");
 const AppError = require("../../utils/AppError");
 const QueryBuilder = require("../../services/queryBuilder");
 const { default: mongoose } = require("mongoose");
+const ENVIRONMENT = require("../../config/env");
+
+exports.uploadProductImage = catchAsync(async (req, res, next) => {
+    if (!req.files || req.files.length === 0) {
+        return next(new AppError("No files uploaded", 400));
+    }
+    let files = req.files;
+    let response = files.map((file) => {
+        return {
+            originalName: file.originalname,
+            fileName: file.filename,
+            url: `${ENVIRONMENT.IMAGE_FILE_PATH}/productImages/${file.filename}`,
+        };
+    });
+    return successRes(res, 201, true, "File uploaded successfully", response);
+});
 
 exports.createSaleProduct = catchAsync(async (req, res, next) => {
     let { title, category, description, tags, variants } = req.body;

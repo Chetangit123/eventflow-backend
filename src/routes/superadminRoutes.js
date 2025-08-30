@@ -13,6 +13,7 @@ const { protect } = require("../utils/jwt");
 const { validateBody, validateQuery } = require("../middlewares/validate");
 const categoryValidation = require("../validations/categoryValidation");
 const productRentValidators = require("../validations/productRentValidators");
+const { uploadProductImage } = require("../services/multer");
 
 //roles : superadmin, event_manager, gatekeeper
 
@@ -50,7 +51,7 @@ router.put('/update-category', protect('superadmin'), validateBody(categoryValid
 router.put('/delete-category', protect('superadmin'), validateBody(categoryValidation.deleteCategoryValidation), adminCategoryController.deleteCategory);
 
 /** Sale Product Management */
-
+router.post('/upload-product-images', protect('superadmin'), uploadProductImage, adminProductController.uploadProductImage);
 router.post('/create-product', protect('superadmin'), validateBody(saleProductValidation.createProductSchema), adminProductController.createSaleProduct);
 router.get('/get-all-sale-products', protect('superadmin'), adminProductController.getAllSalesProducts);
 router.get('/get-sales-product-by-id', protect('superadmin'), validateQuery(saleProductValidation.getProductByIdValidation), adminProductController.getSaleProductById);
