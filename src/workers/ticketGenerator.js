@@ -15,36 +15,39 @@ cron.schedule("*/1 * * * *", async () => {
         paymentStatus: "paid"
     }).limit(5);
 
-    for (const booking of pendingBookings) {
-        try {
-            if (!booking.retryCount) booking.retryCount = 0;
+    console.log(pendingBookings, "pending bookings")
+    if (pendingBookings.length > 0) {
+        for (const booking of pendingBookings) {
+            try {
+                console.log(booking, "booking")
+                if (!booking.retryCount) booking.retryCount = 0;
 
-            booking.ticketStatus = "processing";
-            await booking.save();
-
-            await generateTicketsForBooking(booking._id);
-
-            console.log(`✅ Tickets generated for booking ${booking._id}`);
-        } catch (err) {
-            console.error(`❌ Ticket generation failed for ${booking._id}:`, err.message);
-
-            booking.retryCount = (booking.retryCount || 0) + 1;
-
-            if (booking.retryCount < MAX_RETRIES) {
-                booking.ticketStatus = "retrying";
-                booking.lastError = err.message;
+                booking.ticketStatus = "processing";
                 await booking.save();
-                console.log(`🔁 Retrying booking ${booking._id} (attempt ${booking.retryCount})`);
-            } else {
-                booking.ticketStatus = "failed";
-                booking.lastError = err.message;
-                await booking.save();
+                console.log(booking._id, "booking id")
+                await generateTicketsForBooking(booking._id);
 
-                // 🚨 Alert admin
-                await sendMail({
-                    to: ADMIN_EMAIL,
-                    subject: `⚠️ Ticket Generation Failed (Booking ${booking._id})`,
-                    text: `
+                console.log(`✅ Tickets generated for booking ${booking._id}`);
+            } catch (err) {
+                console.error(`❌ Ticket generation failed for ${booking._id}:`, err.message);
+
+                booking.retryCount = (booking.retryCount || 0) + 1;
+
+                if (booking.retryCount < MAX_RETRIES) {
+                    booking.ticketStatus = "retrying";
+                    booking.lastError = err.message;
+                    await booking.save();
+                    console.log(`🔁 Retrying booking ${booking._id} (attempt ${booking.retryCount})`);
+                } else {
+                    booking.ticketStatus = "failed";
+                    booking.lastError = err.message;
+                    await booking.save();
+
+                    // 🚨 Alert admin
+                    await sendMail({
+                        to: ADMIN_EMAIL,
+                        subject: `⚠️ Ticket Generation Failed (Booking ${booking._id})`,
+                        text: `
 Booking failed after ${MAX_RETRIES} retries.
 
 Booking ID: ${booking._id}
@@ -54,9 +57,13 @@ Session: ${booking.eventSession}
 Error: ${err.message}
 
 Please check logs for details.`,
-                });
-                console.log(`🚨 Admin notified about booking ${booking._id} failure`);
+                    });
+                    console.log(`🚨 Admin notified about booking ${booking._id} failure`);
+                }
             }
         }
+    } else {
+        console.log("No pending bookings found.");
     }
+
 });

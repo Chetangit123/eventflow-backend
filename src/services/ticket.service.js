@@ -26,7 +26,7 @@ exports.generateTicketsForBooking = async (bookingId) => {
         .populate("event")
         .populate("eventSession")
         .populate("user");
-
+    console.log(booking, "booking details")
     const findUser = booking?.user;
 
     if (!booking) return;
@@ -109,15 +109,4 @@ exports.generateTicketsForBooking = async (bookingId) => {
             path: path.join(ticketDir, `${t.ticketId}.${USE_PDF ? "pdf" : "png"}`)
         }))
     });
-
-    // Email user
-    // await sendMail({
-    //     to: booking.user.email,
-    //     subject: "Your Event Tickets",
-    //     text: "Your tickets are attached.",
-    //     attachments: tickets.filter(t => t.status === "generated").map(t => ({
-    //         filename: `${t.ticketId}.${USE_PDF ? "pdf" : "png"}`,
-    //         path: t.pdfPath
-    //     }))
-    // });
 };
