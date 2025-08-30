@@ -229,6 +229,18 @@ exports.createEventSession = catchAsync(async (req, res, next) => {
         seen.add(key);
     }
 
+    // ✅ Validate remainingCapacity
+    for (let session of sessionsData) {
+        if (session.remainingCapacity > session.totalCapacity) {
+            return next(
+                new AppError(
+                    `Remaining capacity cannot be greater than total capacity for event session ${session.specialNameOfDay} on ${session.date}`,
+                    400
+                )
+            );
+        }
+    }
+
     // ✅ Check duplicates in DB
     for (let session of sessionsData) {
         const sessionDate = normalizeDate(new Date(session.date));
