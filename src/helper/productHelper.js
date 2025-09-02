@@ -113,6 +113,10 @@ async function cancelAndRestockExpiredOrders() {
         paymentStatus: 'pending',
         createdAt: { $lt: FIFTEEN_MINUTES_AGO }
     });
+    if (expiredOrders.length === 0) {
+        console.log('No expired orders found.');
+        return;
+    }
 
     for (const order of expiredOrders) {
         // Restore stock for each item in the order
