@@ -11,6 +11,7 @@ const swaggerSpec = require("./src/config/swagger");
 const path = require("path");
 //cron file
 require("./src/workers/ticketGenerator");
+require("./src/workers/cancelOrderCron");
 require("dotenv").config();
 
 const app = express();

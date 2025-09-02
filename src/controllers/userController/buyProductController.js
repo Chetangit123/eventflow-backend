@@ -715,8 +715,7 @@ exports.previewCheckout = catchAsync(async (req, res, next) => {
     });
     const shippingCharges = calcShipping(itemsTotal - discountAmount);
     const grandTotal = Math.max(0, itemsTotal - discountAmount + shippingCharges);
-
-    return res.json({
+    return successRes(res, 200, true, 'Checkout preview', {
         items: lines,
         totals: {
             itemsTotal,
@@ -899,14 +898,13 @@ exports.getMyOrders = catchAsync(async (req, res, next) => {
 
     const [{ items, total }] = await SaleOrder.aggregate(pipeline);
     const totalItems = total?.[0]?.count || 0;
-
-    return res.json({
+    return successRes(res, 200, 'Order list fetched', {
         page: pageNum,
         limit: perPage,
         totalItems,
         totalPages: Math.ceil(totalItems / perPage),
         items
-    });
+    })
 });
 
 

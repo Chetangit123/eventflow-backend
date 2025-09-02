@@ -457,35 +457,61 @@ exports.rentNow = catchAsync(async (req, res, next) => {
     const userId = req.user?._id;
     const { productId, variantId, qty = 1, startDate, endDate, addressId, paymentMethod, gateway = 'razorpay' } = req.body;
 
+    // Validate required fields and constraints
+    if (!userId) return next(new AppError('Unauthorized', 401));
+    if (!mongoose.Types.ObjectId.isValid(productId)) return next(new AppError('Invalid productId', 400));
+    if (!mongoose.Types.ObjectId.isValid(variantId)) return next(new AppError('Invalid variantId', 400));
+    if (!mongoose.Types.ObjectId.isValid(addressId)) return next(new AppError('Invalid addressId', 400));
+    if (!['cod', 'online'].includes(String(paymentMethod))) return next(new AppError('Invalid paymentMethod', 400));
+    if (!startDate || !endDate || new Date(startDate) >= new Date(endDate)) {
+        return next(new AppError('Invalid start or end date', 400));
+    }
+    const quantity = Math.max(1, Number(qty));
+    if (!Number.isInteger(quantity) || quantity < 1) {
+        return next(new AppError('Quantity must be a positive integer', 400));
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
+        // Load product and variant inside transaction
         const product = await ProductRent.findById(productId).session(session);
-        const variant = product?.variants.id(variantId);
-        if (!product || !variant) throw new AppError('Product/Variant not found', 404);
+        if (!product) throw new AppError('Product not found', 404);
 
-        if (variant.stock < qty) throw new AppError('Insufficient stock', 400);
+        const variant = product.variants.id(variantId);
+        if (!variant) throw new AppError('Variant not found', 404);
 
-        // calculate rent
-        const amountInfo = calculateRentAmount({ product, variant, qty, startDate, endDate });
-        // decrease stock
-        variant.stock -= qty;
+        if (variant.stock < quantity) throw new AppError('Insufficient stock', 400);
+
+        // Atomic stock decrement for variant stock
+        const stockDecrementResult = await ProductRent.updateOne(
+            { _id: productId, "variants._id": variantId, "variants.stock": { $gte: quantity } },
+            { $inc: { "variants.$.stock": -quantity } }
+        ).session(session);
+        if (stockDecrementResult.modifiedCount === 0) {
+            throw new AppError('Insufficient stock or stock changed, please try again', 409);
+        }
+
+        // Recalculate totalStock from all variants (optional, for consistency)
         product.totalStock = product.variants.reduce((sum, v) => sum + v.stock, 0);
         await product.save({ session });
 
-        // ✅ fetch address for snapshot
-        const address = await Address.findOne({ _id: addressId, user: userId, isDeleted: false });
+        // Fetch and validate address for snapshot
+        const address = await Address.findOne({ _id: addressId, user: userId, isDeleted: false }).session(session);
         if (!address) throw new AppError('Address not found', 404);
 
-        // create booking
+        // Calculate rent amounts
+        const amountInfo = calculateRentAmount({ product, variant, qty: quantity, startDate, endDate });
+
+        // Create booking document inside transaction
         const [booking] = await RentBooking.create([{
             user: userId,
             items: [{
                 product: product._id,
                 variantId: variant._id,
                 size: variant.size,
-                qty,
+                qty: quantity,
                 pricePerDaySnapshot: product.rentPricePerDay,
                 productSnapshot: {
                     _id: product._id,
@@ -505,32 +531,33 @@ exports.rentNow = catchAsync(async (req, res, next) => {
             }],
             startDate,
             endDate,
-            paymentMethod,
+            days: amountInfo.days,
             rentAmount: amountInfo.rent,
             depositAmount: amountInfo.deposit,
             total: amountInfo.total,
-            currency: amountInfo.currency,
-            days: amountInfo.days,
-            deposit: amountInfo.deposit,
-
-            // ✅ save address ref + snapshot
+            currency: amountInfo.currency || product.currency,
+            paymentMethod,
+            paymentStatus: 'pending',
             pickupAddress: address._id,
             pickupAddressSnapshot: {
                 fullName: address.fullName,
                 phone: address.phone,
-                labeL: address.label, // careful spelling
+                labeL: address.label, // typo kept to match schema
                 line1: address.line1,
                 line2: address.line2,
                 city: address.city,
                 state: address.state,
                 pincode: address.pincode,
                 country: address.country
-            }
+            },
+            orderStatus: 'pending'
         }], { session });
 
+        // Commit all changes atomically
         await session.commitTransaction();
         session.endSession();
 
+        // Create payment intent if online payment method used
         let payment = null;
         if (paymentMethod === 'online') {
             payment = await createPaymentForOrder({
@@ -539,16 +566,16 @@ exports.rentNow = catchAsync(async (req, res, next) => {
                 gateway
             });
         }
-        return successRes(res, 201, true, "Booking Created", {
-            status: booking.status,
-            order: booking,
+
+        return successRes(res, 201, 'Booking Created', {
+            status: booking.orderStatus,
+            booking,
             payment
         });
-
     } catch (err) {
         if (session.inTransaction()) await session.abortTransaction();
         session.endSession();
-        return next(new AppError(err.message, err.statusCode || 500));
+        return next(new AppError(err.message || 'Server error', err.statusCode || 500));
     }
 });
 

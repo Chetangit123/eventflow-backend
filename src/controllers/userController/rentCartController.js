@@ -5,6 +5,7 @@ const ProductRent = mongoose.model('ProductRent');
 const catchAsync = require('../../utils/catchAsync');
 const AppError = require('../../utils/AppError');
 const { recalcRentCartTotals } = require('../../utils/cartUtils');
+const { successRes } = require('../../utils/responseFormatter');
 
 // helper: find or create cart for user
 async function findOrCreateCart(userId) {
@@ -15,8 +16,8 @@ async function findOrCreateCart(userId) {
 
 exports.getCart = catchAsync(async (req, res, next) => {
     const cart = await RentCart.findOne({ user: req.user._id }).lean();
-    if (!cart) return res.json({ success: true, cart: null });
-    return res.json({ success: true, cart });
+    if (!cart) return successRes(res, 200, true, 'Cart is empty', null);
+    return successRes(res, 200, true, 'Cart fetched successfully', cart);
 });
 
 exports.addItem = catchAsync(async (req, res, next) => {
@@ -77,7 +78,7 @@ exports.updateItemQty = catchAsync(async (req, res, next) => {
 
     recalcRentCartTotals(cart);
     await cart.save();
-    return res.json({ success: true, cart });
+    return successRes(res, 200, true, 'Cart updated successfully', cart);
 });
 
 exports.removeItem = catchAsync(async (req, res, next) => {
@@ -91,12 +92,12 @@ exports.removeItem = catchAsync(async (req, res, next) => {
     cart.items = cart.items.filter(it => !(String(it.product) === String(productId) && String(it.variantId) === String(variantId)));
     recalcRentCartTotals(cart);
     await cart.save();
-    return res.json({ success: true, cart });
+    return successRes(res, 200, true, 'Item removed from cart', cart);
 });
 
 exports.clearCart = catchAsync(async (req, res, next) => {
     const cart = await RentCart.findOne({ user: req.user._id });
-    if (!cart) return res.json({ success: true, cart: null });
+    if (!cart) return next(new AppError('Cart not found', 404));
     cart.items = [];
     cart.startDate = undefined;
     cart.endDate = undefined;
@@ -104,7 +105,7 @@ exports.clearCart = catchAsync(async (req, res, next) => {
     cart.totalDeposit = 0;
     cart.totalPayable = 0;
     await cart.save();
-    return res.json({ success: true, cart });
+    return successRes(res, 200, true, 'Cart cleared', null);
 });
 
 // admin or user might want to fetch cart by id
@@ -112,5 +113,5 @@ exports.getCartById = catchAsync(async (req, res, next) => {
     const { id } = req.params;
     const cart = await RentCart.findById(id).lean();
     if (!cart) return next(new AppError('Cart not found', 404));
-    return res.json({ success: true, cart });
+    return successRes(res, 200, true, 'Cart fetched successfully', cart);
 });

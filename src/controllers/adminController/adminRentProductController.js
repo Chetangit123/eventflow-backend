@@ -201,7 +201,7 @@ exports.restoreProduct = catchAsync(async (req, res, next) => {
     if (!mongoose.Types.ObjectId.isValid(id)) return next(new AppError('Invalid product id', 400));
     const doc = await ProductRent.findByIdAndUpdate(id, { isDeleted: false }, { new: true });
     if (!doc) return next(new AppError('Product not found', 404));
-    res.json({ status: 'success', data: doc });
+    return successRes(res, 200, true, 'Product restored successfully', doc);
 });
 
 /* ================= Variant CRUD ================= */
@@ -289,7 +289,7 @@ exports.updateVariant = catchAsync(async (req, res, next) => {
         session.endSession();
 
         const updated = await ProductRent.findById(productId).populate(DEFAULT_POPULATE);
-        res.json({ status: 'success', data: updated });
+        return successRes(res, 200, 'success', 'Variant updated successfully', updated);
     } catch (err) {
         await session.abortTransaction();
         session.endSession();
@@ -353,7 +353,7 @@ exports.adjustVariantStock = catchAsync(async (req, res, next) => {
         session.endSession();
 
         const populated = await ProductRent.findById(updated._id).populate(DEFAULT_POPULATE);
-        res.json({ status: 'success', data: populated });
+        return successRes(res, 200, true, 'Stock adjusted successfully', populated);
     } catch (err) {
         await session.abortTransaction();
         session.endSession();
