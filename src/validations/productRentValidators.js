@@ -40,7 +40,8 @@ module.exports = {
         variants: Joi.array().items(variantSchema).optional(),
         tags: Joi.array().items(Joi.string()).optional(),
         status: Joi.string().valid('active', 'inactive').optional(),
-        category: Joi.string().hex().length(24).optional()
+        category: Joi.string().hex().length(24).optional(),
+        gender: Joi.string().valid("men", "women", "boys", "girls", "unisex", "all").optional()
     }),
 
     listQuerySchema: Joi.object({
