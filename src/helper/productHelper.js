@@ -3,7 +3,10 @@
 const { default: mongoose } = require("mongoose");
 const AppError = require("../utils/AppError");
 const ProductSale = require("../models/ProductSale");
+const ProductRent = require("../models/ProductRent");
 const QueryBuilder = require("../services/queryBuilder");
+const SaleOrder = require("../models/SaleOrder");
+const RentBooking = require("../models/RentBooking");
 
 const toInt = (v, d) => {
     const x = parseInt(v, 10);
@@ -104,6 +107,66 @@ async function decrementStockAtomic({ productId, variantId, qty, session }) {
     return res.matchedCount === 1 && res.modifiedCount === 1;
 }
 
+async function cancelAndRestockExpiredOrders() {
+    const FIFTEEN_MINUTES_AGO = new Date(Date.now() - 15 * 60 * 1000);
+
+    // Find orders with paymentStatus 'pending' created more than 15 minutes ago
+    const expiredOrders = await SaleOrder.find({
+        paymentStatus: 'pending',
+        createdAt: { $lt: FIFTEEN_MINUTES_AGO }
+    });
+    if (expiredOrders.length === 0) {
+        console.log('No expired orders found.');
+        return;
+    }
+
+    for (const order of expiredOrders) {
+        // Restore stock for each item in the order
+        for (const item of order.items) {
+            await ProductSale.updateOne(
+                { _id: item.product, "variants._id": item.variantId, isDeleted: false },
+                { $inc: { "variants.$.stock": item.qty } }
+            );
+        }
+
+        // Cancel the order
+        order.orderStatus = 'cancelled';
+        order.paymentStatus = 'failed';
+        order.cancelledAt = new Date();
+        console.log(`Order ${order._id} cancelled and stock restored.`);
+        await order.save();
+    }
+}
+
+async function cancelAndRestockExpiredRentals() {
+    const FIFTEEN_MINUTES_AGO = new Date(Date.now() - 15 * 60 * 1000);
+
+    // Find rental bookings in 'pending' paymentStatus older than 15 minutes
+    const expiredBookings = await RentBooking.find({
+        paymentStatus: 'pending',
+        createdAt: { $lt: FIFTEEN_MINUTES_AGO }
+    });
+
+    for (const booking of expiredBookings) {
+        // Restore stock for each item variant in the booking
+        for (const item of booking.items) {
+            await ProductRent.updateOne(
+                { _id: item.product, 'variants._id': item.variantId },
+                { $inc: { 'variants.$.stock': item.qty } }
+            );
+        }
+
+        // Mark booking as cancelled and failed payment
+        booking.orderStatus = 'cancelled';
+        booking.paymentStatus = 'failed';
+        booking.cancelledAt = new Date();
+
+        await booking.save();
+    }
+}
+
+
+
 
 
 
@@ -116,5 +179,7 @@ module.exports = {
     loadProductAndVariant,
     buildOrderItemSnapshot,
     decrementStockAtomic,
-    toInt
+    toInt,
+    cancelAndRestockExpiredOrders,
+    cancelAndRestockExpiredRentals
 };

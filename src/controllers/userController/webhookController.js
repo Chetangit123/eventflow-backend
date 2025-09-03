@@ -1,6 +1,7 @@
 // src/controllers/webhookController.js
 const crypto = require("crypto");
 const TicketBooking = require("../../models/TicketBooking");
+const { successRes } = require("../../utils/responseFormatter");
 
 exports.razorpayWebhook = catchAsync(async (req, res, next) => {
     const secret = ENVIRONMENT.RAZORPAY_WEBHOOK_SECRET;
@@ -35,6 +36,5 @@ exports.razorpayWebhook = catchAsync(async (req, res, next) => {
             }
         );
     }
-
-    return res.json({ status: "ok" });
+    return successRes(res, 200, true, 'Webhook processed', null);
 });
