@@ -133,5 +133,5 @@ exports.activeDeactiveSaleProduct = catchAsync(async (req, res, next) => {
     }
     product.status = status || product.status;
     await product.save();
-    return successRes(res, 200, true, "Product updated successfully", product);
+    return successRes(res, 200, true, status === "active"  ? "Product active successfully" : "Product inactive successfully", product);
 });

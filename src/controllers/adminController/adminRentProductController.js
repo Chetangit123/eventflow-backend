@@ -370,5 +370,5 @@ exports.activeDeactiveProduct = catchAsync(async (req, res, next) => {
     if (!product) return next(new AppError('Product not found', 404));
     product.status = status || product.status;
     await product.save();
-    return successRes(res, 200, true, 'Product updated successfully', product);
+    return successRes(res, 200, true, status === "active" ? 'Product active successfully' : 'Product inactive successfully', product);
 });
