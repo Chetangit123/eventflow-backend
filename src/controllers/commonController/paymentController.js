@@ -130,10 +130,7 @@ exports.verifyRazorpayPayment = catchAsync(async (req, res, next) => {
     };
     order.orderStatus = order.orderStatus === 'placed' ? 'placed' : 'placed'; // keep or set placed
     await order.save();
-    return successRes(res, 200, 'Payment verified and order updated', {
-        order,
-        note: amountMismatch ? 'Amount mismatch detected — flagged in order.notes' : undefined,
-    })
+    return successRes(res, 200, true, 'Payment verified successfully', order);
 
 });
 
