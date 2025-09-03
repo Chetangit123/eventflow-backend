@@ -8,6 +8,7 @@ const cartController = require("../controllers/userController/cartController");
 const buyProductController = require("../controllers/userController/buyProductController");
 const paymentController = require("../controllers/commonController/paymentController");
 const rentBookingController = require("../controllers/userController/rentBookingController");
+const policyController = require("../controllers/userController/policyController");
 const { protect } = require("../utils/jwt");
 const { uploadUserProfile } = require("../services/multer");
 const bookingValidation = require("../validations/bookingValidation");
@@ -75,4 +76,9 @@ router.get('/get-rent-product-details', rentBookingController.getRentProductById
 router.post('/rent-now', protect('user'), validateBody(bookingValidation.rentNowValidation), rentBookingController.rentNow);
 router.post('/verify-rent-payment', protect('user'), rentBookingController.verifyRentPayment);
 
+
+
+/** ==================Policy Management================= */
+
+router.get("/get-policy", policyController.getPolicy);
 module.exports = router;

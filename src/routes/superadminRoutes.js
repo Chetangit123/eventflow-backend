@@ -9,6 +9,7 @@ const saleProductValidation = require("../validations/saleProductValidation");
 const adminCategoryController = require("../controllers/adminController/adminCategoryController");
 const adminOrderManagementController = require("../controllers/adminController/adminOrderManagementController");
 const adminRentProductController = require("../controllers/adminController/adminRentProductController");
+const adminPolicyController = require("../controllers/adminController/adminPolicyController");
 const { protect } = require("../utils/jwt");
 const { validateBody, validateQuery } = require("../middlewares/validate");
 const categoryValidation = require("../validations/categoryValidation");
@@ -69,5 +70,12 @@ router.put("/change-rent-product-status", protect('superadmin'), validateBody(pr
 /** ====================== Order Management================= */
 router.get('/get-order-list', protect('superadmin'), adminOrderManagementController.adminListOrders);
 router.put('/update-order-status', protect('superadmin'), adminOrderManagementController.updateOrderStatus);
+
+
+
+/** ====================== Policy Management================= */
+
+router.post("/create-or-update-policy", protect("superadmin"), adminPolicyController.createOrUpdatePolicy);
+router.get("/get-policy",protect("superadmin"), adminPolicyController.getPolicy);
 
 module.exports = router;
