@@ -360,3 +360,15 @@ exports.adjustVariantStock = catchAsync(async (req, res, next) => {
         return next(err);
     }
 });
+
+
+exports.activeDeactiveProduct = catchAsync(async (req, res, next) => {
+    const {productId,status} = req.body
+    if (!mongoose.Types.ObjectId.isValid(productId)) return next(new AppError('Invalid product id', 400));
+
+    const product = await ProductRent.findById(productId);
+    if (!product) return next(new AppError('Product not found', 404));
+    product.status = status || product.status;
+    await product.save();
+    return successRes(res, 200, true, 'Product updated successfully', product);
+});

@@ -57,4 +57,9 @@ const updateProductValidation = Joi.object({
     status: Joi.string().valid("active", "inactive", "draft").optional()
 });
 
-module.exports = { createProductSchema, getProductByIdValidation, updateProductValidation };
+const changeProductStatusValidation = Joi.object({
+    productId: Joi.string().hex().length(24).required(),
+    status: Joi.string().valid("active", "inactive", "draft").required()
+});
+
+module.exports = { createProductSchema, getProductByIdValidation, updateProductValidation ,changeProductStatusValidation};

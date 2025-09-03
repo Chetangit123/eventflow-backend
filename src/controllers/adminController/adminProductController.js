@@ -121,3 +121,17 @@ exports.updateSaleProduct = catchAsync(async (req, res, next) => {
     await product.save();
     return successRes(res, 200, true, "Product updated successfully", product);
 });
+
+exports.activeDeactiveSaleProduct = catchAsync(async (req, res, next) => {
+    const { productId , status } = req.body;
+    console.log(productId, "productId");
+    if (!productId) return next(new AppError("Product id is required", 400));
+    const qb = new QueryBuilder(ProductSale);
+    const product = await qb.findOne({ _id: productId }).exec();
+    if (!product) {
+        return next(new AppError("Product not found", 404));
+    }
+    product.status = status || product.status;
+    await product.save();
+    return successRes(res, 200, true, "Product updated successfully", product);
+});

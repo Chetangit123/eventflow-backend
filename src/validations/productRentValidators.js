@@ -78,5 +78,10 @@ module.exports = {
 
     adjustStockSchema: Joi.object({
         delta: Joi.number().integer().required() // negative to decrement, positive to increment
+    }),
+
+    changeProductStatusValidation: Joi.object({
+        productId: Joi.string().hex().length(24).required(),
+        status: Joi.string().valid("active", "inactive", "draft").required()
     })
 };

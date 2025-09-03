@@ -56,6 +56,7 @@ router.post('/create-product', protect('superadmin'), validateBody(saleProductVa
 router.get('/get-all-sale-products', protect('superadmin'), adminProductController.getAllSalesProducts);
 router.get('/get-sales-product-by-id', protect('superadmin'), validateQuery(saleProductValidation.getProductByIdValidation), adminProductController.getSaleProductById);
 router.put('/update-sale-product', protect('superadmin'), validateBody(saleProductValidation.updateProductValidation), adminProductController.updateSaleProduct);
+router.put("/change-product-status", protect('superadmin'), validateBody(saleProductValidation.changeProductStatusValidation), adminProductController.activeDeactiveSaleProduct);
 
 /** Rent Product Management */
 router.post('/create-rent-product', protect('superadmin'), validateBody(productRentValidators.createProductSchema), adminRentProductController.createRentProduct);
@@ -63,6 +64,7 @@ router.get('/get-all-rent-products', protect('superadmin'), adminRentProductCont
 router.get('/get-rent-product-by-id', protect('superadmin'), adminRentProductController.getRentProduct);
 router.put('/update-rent-product', protect('superadmin'), validateBody(productRentValidators.updateProductSchema), adminRentProductController.updateRentProduct);
 router.put('/delete-rent-product', protect('superadmin'), adminRentProductController.deleteRentProduct);
+router.put("/change-rent-product-status", protect('superadmin'), validateBody(productRentValidators.changeProductStatusValidation), adminRentProductController.activeDeactiveProduct);
 
 /** ====================== Order Management================= */
 router.get('/get-order-list', protect('superadmin'), adminOrderManagementController.adminListOrders);
