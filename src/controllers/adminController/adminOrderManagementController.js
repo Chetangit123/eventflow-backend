@@ -122,7 +122,7 @@ exports.adminListOrders = catchAsync(async (req, res, next) => {
     ];
     const [{ items, total }] = await SaleOrder.aggregate(pipeline);
     const totalItems = total?.[0]?.count || 0;
-    return successRes(res, 200, 'Order list fetched', {
+    return successRes(res, 200, true, 'Order list fetched', {
         page: pageNum,
         limit: perPage,
         totalItems,

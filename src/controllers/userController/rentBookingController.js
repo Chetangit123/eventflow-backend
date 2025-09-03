@@ -567,7 +567,7 @@ exports.rentNow = catchAsync(async (req, res, next) => {
             });
         }
 
-        return successRes(res, 201, 'Booking Created', {
+        return successRes(res, 201, true, 'Booking Created', {
             status: booking.orderStatus,
             booking,
             payment
@@ -667,7 +667,7 @@ exports.verifyRentPayment = catchAsync(async (req, res, next) => {
     };
     order.orderStatus = 'booked'; // keep or set placed
     await order.save();
-    return successRes(res, 200, 'Payment verified and order updated', {
+    return successRes(res, 200, true, 'Payment verified and order updated', {
         order,
         note: amountMismatch ? 'Amount mismatch detected — flagged in order.notes' : undefined,
     })

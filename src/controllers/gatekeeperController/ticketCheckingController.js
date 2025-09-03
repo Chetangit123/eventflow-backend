@@ -45,7 +45,7 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
 
             await session.commitTransaction();
             session.endSession();
-            return successRes(res, 404, false, responseMsg);
+            return successRes(res, 404, false, responseMsg, extraData);
         }
 
         const ticket = booking.tickets.find(t => t.ticketId === ticketId);
@@ -65,7 +65,7 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
 
             await session.commitTransaction();
             session.endSession();
-            return successRes(res, 404, false, responseMsg);
+            return successRes(res, 404, false, responseMsg, extraData);
         }
 
         // ✅ Check session status (cancelled or completed)
