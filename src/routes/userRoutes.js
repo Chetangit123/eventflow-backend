@@ -8,6 +8,7 @@ const cartController = require("../controllers/userController/cartController");
 const buyProductController = require("../controllers/userController/buyProductController");
 const paymentController = require("../controllers/commonController/paymentController");
 const rentBookingController = require("../controllers/userController/rentBookingController");
+const rentCartController = require("../controllers/userController/rentCartController");
 const policyController = require("../controllers/userController/policyController");
 const { protect } = require("../utils/jwt");
 const { uploadUserProfile } = require("../services/multer");
@@ -77,7 +78,8 @@ router.post('/rent-now', protect('user'), validateBody(bookingValidation.rentNow
 router.post('/verify-rent-payment', protect('user'), rentBookingController.verifyRentPayment);
 
 /**=================== Rent Product Cart Routes ================ */
-// router.post('/add-to-rent-cart', protect('user'), cartController.addToRentCart);
+router.post('/add-to-rent-cart', protect('user'), validateBody(bookingValidation.addRentalCartValidation), rentCartController.addItemToRentCart);
+router.get('/get-rent-cart', protect('user'), rentCartController.getRentCart);
 
 
 

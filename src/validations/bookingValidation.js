@@ -22,6 +22,56 @@ module.exports = {
         paymentMethod: Joi.string().valid('cod', 'online').required(),
         gateway: Joi.string().valid('razorpay', 'stripe').default('razorpay')
     }),
+    addRentalCartValidation: Joi.object({
+        productId: Joi.string()
+            .required()
+            .custom((value, helpers) => {
+                if (!mongoose.Types.ObjectId.isValid(value)) {
+                    return helpers.error("any.invalid");
+                }
+                return value;
+            })
+            .messages({
+                "any.required": "productId is required",
+                "any.invalid": "Invalid productId"
+            }),
+
+        variantId: Joi.string()
+            .required()
+            .custom((value, helpers) => {
+                if (!mongoose.Types.ObjectId.isValid(value)) {
+                    return helpers.error("any.invalid");
+                }
+                return value;
+            })
+            .messages({
+                "any.required": "variantId is required",
+                "any.invalid": "Invalid variantId"
+            }),
+
+        qty: Joi.number()
+            .integer()
+            .min(1)
+            .default(1)
+            .messages({
+                "number.base": "Qty must be a number",
+                "number.min": "Qty must be at least 1"
+            }),
+
+        startDate: Joi.date()
+            .optional()
+            .messages({
+                "date.base": "startDate must be a valid date"
+            }),
+
+        endDate: Joi.date()
+            .optional()
+            .greater(Joi.ref("startDate"))
+            .messages({
+                "date.base": "endDate must be a valid date",
+                "date.greater": "endDate must be greater than startDate"
+            }),
+    })
 
 }
 

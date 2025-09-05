@@ -19,9 +19,10 @@ const RentCartSchema = new Schema({
     items: [RentCartItemSchema],
 
     // totals
-    grossSubtotal: { type: Number, default: 0 },
+    grossSubtotal: { type: Number, default: 0 }, // qty * rentPricePerDay (without discount)
+    discount: { type: Number, default: 0 },      // grossSubtotal - totalPayable(discounted)
     totalDeposit: { type: Number, default: 0 },
-    totalPayable: { type: Number, default: 0 },
+    totalPayable: { type: Number, default: 0 }, // after discount and deposit
 
     coupon: { type: String, default: null }
 }, { timestamps: true });
