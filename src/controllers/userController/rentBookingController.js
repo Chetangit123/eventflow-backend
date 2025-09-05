@@ -17,21 +17,6 @@ const rpInstance = () => new Razorpay({
     key_secret: ENVIRONMENT.RAZORPAY_KEY_SECRET
 });
 
-
-async function mapAddressSnapshot(addressDoc) {
-    if (!addressDoc) return undefined;
-    return {
-        _id: addressDoc._id,
-        label: addressDoc.label,
-        line1: addressDoc.line1,
-        line2: addressDoc.line2,
-        city: addressDoc.city,
-        state: addressDoc.state,
-        pincode: addressDoc.pincode,
-        country: addressDoc.country,
-    };
-}
-
 const parseCSV = (val) =>
     typeof val === 'string'
         ? val.split(',').map(s => s.trim()).filter(Boolean)
@@ -40,12 +25,6 @@ const parseCSV = (val) =>
 const toBool = (v) => v === '1' || v === 'true' || v === true;
 
 const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-const toInt = (v, d) => {
-    const x = parseInt(v, 10);
-    return Number.isFinite(x) && x > 0 ? x : d;
-};
-const parseBool = v => v === true || v === 'true' || v === '1';
 
 const sortStages = (sortKey, mode = 'product') => {
     switch (sortKey) {

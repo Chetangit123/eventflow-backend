@@ -76,6 +76,9 @@ router.get('/get-rent-product-details', rentBookingController.getRentProductById
 router.post('/rent-now', protect('user'), validateBody(bookingValidation.rentNowValidation), rentBookingController.rentNow);
 router.post('/verify-rent-payment', protect('user'), rentBookingController.verifyRentPayment);
 
+/**=================== Rent Product Cart Routes ================ */
+// router.post('/add-to-rent-cart', protect('user'), cartController.addToRentCart);
+
 
 
 /** ==================Policy Management================= */

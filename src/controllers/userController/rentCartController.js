@@ -20,7 +20,7 @@ exports.getCart = catchAsync(async (req, res, next) => {
     return successRes(res, 200, true, 'Cart fetched successfully', cart);
 });
 
-exports.addItem = catchAsync(async (req, res, next) => {
+exports.addItemToRentCart = catchAsync(async (req, res, next) => {
     // body: { productId, variantId, qty, startDate?, endDate? }
     const { productId, variantId, qty = 1, startDate, endDate } = req.body || {};
     if (!productId || !variantId) return next(new AppError('productId and variantId are required', 400));

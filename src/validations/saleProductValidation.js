@@ -30,7 +30,7 @@ const createProductSchema = Joi.object({
         }),
 
     status: Joi.string().valid('active', 'inactive', 'draft').default('active'),
-    gender: Joi.string().valid('man', 'woman', 'unisex').optional()
+    gender: Joi.string().valid("men", "women", 'boys', 'girls', "unisex", "all").optional()
 });
 
 const getProductByIdValidation = Joi.object({
@@ -62,4 +62,4 @@ const changeProductStatusValidation = Joi.object({
     status: Joi.string().valid("active", "inactive", "draft").required()
 });
 
-module.exports = { createProductSchema, getProductByIdValidation, updateProductValidation ,changeProductStatusValidation};
+module.exports = { createProductSchema, getProductByIdValidation, updateProductValidation, changeProductStatusValidation };
