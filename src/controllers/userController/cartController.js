@@ -14,50 +14,63 @@ exports.addToCart = catchAsync(async (req, res, next) => {
     }
 
     qty = Number(qty);
-
-    // 🔹 Product fetch
-    let productQb = new QueryBuilder(ProductSale);
-    let product = await productQb.findOne({ _id: productId }).exec();
-    if (!product) return next(new AppError("Product not found", 404));
-
-    const variant = product.variants.id(variantId);
-    if (!variant) return next(new AppError("Variant not found", 404));
-
-    if (variant.stock < qty) {
-        return next(new AppError("Not enough stock available", 400));
+    if (qty <= 0) {
+        return next(new AppError("Qty must be greater than 0", 400));
     }
 
-    const mrp = variant.price;
-    const sellPrice = variant.discountPrice > 0 ? variant.discountPrice : variant.price;
-    const lineTotal = Number(qty) * sellPrice;
+    // 🔹 1. Fetch product + variant
+    const product = await ProductSale.findOne({ _id: productId, status: "active" }).lean();
+    if (!product) return next(new AppError("Product not found", 404));
 
-    // 🔹 Cart fetch/create
-    let cartQb = new QueryBuilder(SaleCart);
-    let cart = await cartQb.findOne({ user: userId }).exec();
+    const variant = product.variants.find(v => v._id.toString() === variantId);
+    if (!variant) return next(new AppError("Variant not found", 404));
+
+    if (variant.stock <= 0) {
+        return next(new AppError("This variant is out of stock", 400));
+    }
+
+    // 🔹 2. Fetch/Create Cart
+    let cart = await SaleCart.findOne({ user: userId });
     if (!cart) {
         cart = new SaleCart({ user: userId, items: [] });
     }
 
-    // 🔹 Item check (already in cart?)
+    // 🔹 3. Check if item already exists in cart
     const existingItem = cart.items.find(
         item => item.product.toString() === productId && item.variantId.toString() === variantId
     );
 
+    let newQty = qty;
     if (existingItem) {
-        existingItem.qty += qty;
-        existingItem.lineTotal = existingItem.qty * existingItem.sellPrice;
+        newQty += existingItem.qty;
+    }
+
+    // 🔹 4. Stock validation (total qty must not exceed available stock)
+    if (newQty > variant.stock) {
+        return next(new AppError(`Only ${variant.stock} item(s) available in stock`, 400));
+    }
+
+    const mrp = variant.price;
+    const sellPrice = variant.discountPrice > 0 ? variant.discountPrice : variant.price;
+
+    if (existingItem) {
+        existingItem.qty = newQty;
+        existingItem.lineTotal = existingItem.qty * sellPrice;
     } else {
         cart.items.push({
             product: productId,
             variantId,
+            titleSnapshot: product.title,
+            color: variant.color,
+            size: variant.size,
             qty,
             mrp,
             sellPrice,
-            lineTotal
+            lineTotal: qty * sellPrice
         });
     }
 
-    // 🔹 Recalculate totals
+    // 🔹 5. Recalculate totals
     let grossSubtotal = 0;
     let discount = 0;
     let totalPayable = 0;
@@ -79,7 +92,7 @@ exports.addToCart = catchAsync(async (req, res, next) => {
         grossSubtotal: cart.grossSubtotal,
         discount: cart.discount,
         totalPayable: cart.totalPayable,
-        coupon: cart.coupon
+        coupon: cart.coupon || null
     });
 });
 
