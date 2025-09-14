@@ -255,28 +255,29 @@ async function generateTicketId(eventCode) {
 // };
 
 
-let browser;
+let browser = null;
 
 async function getBrowser() {
-    if (!browser) {
-        browser = await puppeteer.launch({
-            headless: true,
-            args: [
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--disable-accelerated-2d-canvas",
-                "--no-first-run",
-                "--no-zygote",
-                "--single-process",
-                "--disable-gpu"
-            ]
-        });
+    if (browser) return browser;
 
-        browser.on("disconnected", () => {
-            browser = null;
-        });
-    }
+    const envPath = process.env.CHROME_BIN || undefined; // set CHROME_BIN=/usr/bin/google-chrome-stable if you installed it
+    const launchOptions = {
+        headless: true,
+        executablePath: envPath, // undefined => let puppeteer use its downloaded Chromium
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--no-zygote',
+            '--single-process',
+        ],
+        ignoreHTTPSErrors: true,
+        defaultViewport: { width: 1280, height: 800 },
+    };
+
+    browser = await puppeteer.launch(launchOptions);
+    browser.on('disconnected', () => { browser = null; });
     return browser;
 }
 
