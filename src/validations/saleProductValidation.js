@@ -43,6 +43,7 @@ const updateProductValidation = Joi.object({
     description: Joi.string().allow("").optional(),
     category: Joi.string().optional(),
     tags: Joi.array().items(Joi.string()).optional(),
+    gender: Joi.string().valid("men", "women", 'boys', 'girls', "unisex", "all").optional(),
     variants: Joi.array().items(
         Joi.object({
             color: Joi.string().optional(),

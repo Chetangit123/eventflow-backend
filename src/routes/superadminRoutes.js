@@ -79,6 +79,7 @@ router.put('/update-order-status', protect('superadmin'), adminOrderManagementCo
 
 router.post("/create-or-update-policy", protect("superadmin"), adminPolicyController.createOrUpdatePolicy);
 router.get("/get-policy",protect("superadmin"), adminPolicyController.getPolicy);
+router.get("/get-all-policy",protect("superadmin"), adminPolicyController.getAllPolicies);
 
 
 /** ====================== Common Management=================*/
