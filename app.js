@@ -54,6 +54,11 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // ------------------------
 app.use("/api/v1", indexRoutes);
 
+//dummy route
+app.get("/api/v1/test", (req, res) => {
+    res.send("Hello world!");
+});
+
 // ------------------------
 // ✅ 404 + Error Handler
 // ------------------------
