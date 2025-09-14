@@ -261,8 +261,8 @@ async function getBrowser() {
     if (!browser) {
         browser = await puppeteer.launch({
             executablePath: "/usr/bin/chromium-browser", // system chromium path
-            headless: "new", // use newer headless mode if supported
-            args: ["--no-sandbox", "--disable-setuid-sandbox"], // disable sandbox for root
+            // headless: "new", // use newer headless mode if supported
+            args: ["--no-sandbox"], // disable sandbox for root
         });
         browser.on("disconnected", () => {
             browser = null;
