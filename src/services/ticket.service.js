@@ -130,6 +130,147 @@ async function generateTicketId(eventCode) {
     return `${eventCode.toUpperCase()}-${year}-${uniqueId}`;
 }
 
+// exports.generateTicketsForBooking = async (bookingId) => {
+//     const booking = await TicketBooking.findById(bookingId)
+//         .populate("event")
+//         .populate("eventSession")
+//         .populate("user");
+
+//     if (!booking) throw new Error("Booking not found");
+
+//     // Idempotency guard
+//     if (booking.ticketStatus === "confirmed" && booking.tickets?.length === booking.quantity) {
+//         return { success: true, skipped: true, reason: "already_confirmed" };
+//     }
+
+//     const eventData = booking.event;
+//     const sessionData = booking.eventSession;
+//     const user = booking.user;
+
+//     if (!fs.existsSync(TICKETS_DIR)) fs.mkdirSync(TICKETS_DIR, { recursive: true });
+
+//     const tickets = [];
+//     const perTicketErrors = [];
+
+//     for (const attendee of booking.attendeeDetails) {
+//         const ticketId = await generateTicketId("TAAL");
+//         let status = "generated";
+
+//         try {
+//             const qrPayload = {
+//                 ticketId,
+//                 attendeeName: attendee.name,
+//                 eventName: eventData?.title || eventData?.name || "Event",
+//                 dateTime: `${sessionData.date} | ${sessionData.startTime}-${sessionData.endTime}`
+//             };
+
+//             const qrImage = await QRCode.toDataURL(JSON.stringify(qrPayload));
+
+//             const htmlContent = GarbaGalaTemplate({
+//                 headline: eventData?.title || eventData?.name || "Event",
+//                 dateText: sessionData.date,
+//                 timeText: `${sessionData.startTime}-${sessionData.endTime}`,
+//                 venueText: eventData?.venueName || "",
+//                 noteText: "Show this ticket at entry",
+//                 tagline: eventData?.description || "",
+//                 qrCodeLink: qrImage,
+//                 attendeeName: attendee.name,
+//                 ticketId
+//             });
+
+//             const fileName = `${ticketId}.${USE_PDF ? "pdf" : "png"}`;
+//             const absPath = path.join(TICKETS_DIR, fileName);
+//             const serverPath = `/uploads/tickets/${fileName}`; // store in DB if you serve /uploads statically
+
+//             if (USE_PDF) {
+//                 const puppeteer = require("puppeteer");
+//                 // const browser = await puppeteer.launch({ headless: "new" });
+//                 const browser = await puppeteer.launch({
+//                     executablePath: '/usr/bin/google-chrome', // your Chrome path
+//                     headless: "new",
+//                     args: ['--no-sandbox', '--disable-setuid-sandbox']
+//                 });
+//                 const page = await browser.newPage();
+//                 await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+//                 await page.pdf({ path: absPath, format: "A4", printBackground: true });
+//                 await browser.close();
+//             } else {
+//                 await nodeHtmlToImage({ output: absPath, html: htmlContent });
+//             }
+
+//             tickets.push({
+//                 ticketId,
+//                 qrImage,
+//                 qrData: JSON.stringify(qrPayload),
+//                 pdfPath: serverPath,
+//                 attendeeName: attendee.name,
+//                 status
+//             });
+//         } catch (err) {
+//             status = "failed";
+//             perTicketErrors.push({ ticketId, attendee: attendee.name, error: err.message });
+//             tickets.push({
+//                 ticketId,
+//                 attendeeName: attendee.name,
+//                 status,
+//                 error: err.message
+//             });
+//         }
+//     }
+
+//     const allGenerated = tickets.every(t => t.status === "generated");
+//     booking.tickets = tickets;
+//     booking.ticketStatus = allGenerated ? "confirmed" : "failed";
+//     await booking.save();
+
+//     // Only send email if we have at least one generated ticket file
+//     const generatedTickets = tickets.filter(t => t.status === "generated");
+//     if (generatedTickets.length > 0) {
+//         const emailTemplate = thanksMailToUser({
+//             name: user?.name || "Guest",
+//             eventName: eventData?.title || eventData?.name || "Event",
+//             eventDate: sessionData.date,
+//             eventTime: `${sessionData.startTime}-${sessionData.endTime}`,
+//             venue: eventData?.venueName || "",
+//             ticketIds: generatedTickets.map(t => t.ticketId)
+//         });
+
+//         await sendMail({
+//             to: user.email,
+//             subject: "Your Event Tickets",
+//             text: "Your ticket booking details",
+//             template: emailTemplate,
+//             attachments: generatedTickets.map(t => ({
+//                 filename: `${t.ticketId}.${USE_PDF ? "pdf" : "png"}`,
+//                 path: path.join(TICKETS_DIR, `${t.ticketId}.${USE_PDF ? "pdf" : "png"}`)
+//             }))
+//         });
+//     }
+
+//     // Signal to the worker whether to retry
+//     return {
+//         success: allGenerated,
+//         errors: perTicketErrors
+//     };
+// };
+
+
+let browser;
+
+async function getBrowser() {
+    if (!browser) {
+        browser = await puppeteer.launch({
+            executablePath: "/usr/bin/chromium-browser", // system chromium path
+            headless: "new", // use newer headless mode if supported
+            args: ["--no-sandbox", "--disable-setuid-sandbox"], // disable sandbox for root
+        });
+        browser.on("disconnected", () => {
+            browser = null;
+        });
+    }
+    return browser;
+}
+
 exports.generateTicketsForBooking = async (bookingId) => {
     const booking = await TicketBooking.findById(bookingId)
         .populate("event")
@@ -180,20 +321,14 @@ exports.generateTicketsForBooking = async (bookingId) => {
 
             const fileName = `${ticketId}.${USE_PDF ? "pdf" : "png"}`;
             const absPath = path.join(TICKETS_DIR, fileName);
-            const serverPath = `/uploads/tickets/${fileName}`; // store in DB if you serve /uploads statically
+            const serverPath = `/uploads/tickets/${fileName}`; // store in DB if /uploads served statically
 
             if (USE_PDF) {
-                const puppeteer = require("puppeteer");
-                // const browser = await puppeteer.launch({ headless: "new" });
-                const browser = await puppeteer.launch({
-                    executablePath: '/usr/bin/google-chrome', // your Chrome path
-                    headless: "new",
-                    args: ['--no-sandbox', '--disable-setuid-sandbox']
-                });
-                const page = await browser.newPage();
+                const browserInstance = await getBrowser();
+                const page = await browserInstance.newPage();
                 await page.setContent(htmlContent, { waitUntil: "networkidle0" });
                 await page.pdf({ path: absPath, format: "A4", printBackground: true });
-                await browser.close();
+                await page.close();
             } else {
                 await nodeHtmlToImage({ output: absPath, html: htmlContent });
             }
@@ -218,12 +353,13 @@ exports.generateTicketsForBooking = async (bookingId) => {
         }
     }
 
+    // Decide overall status
     const allGenerated = tickets.every(t => t.status === "generated");
     booking.tickets = tickets;
     booking.ticketStatus = allGenerated ? "confirmed" : "failed";
     await booking.save();
 
-    // Only send email if we have at least one generated ticket file
+    // Send email only if any ticket generated
     const generatedTickets = tickets.filter(t => t.status === "generated");
     if (generatedTickets.length > 0) {
         const emailTemplate = thanksMailToUser({
@@ -247,7 +383,6 @@ exports.generateTicketsForBooking = async (bookingId) => {
         });
     }
 
-    // Signal to the worker whether to retry
     return {
         success: allGenerated,
         errors: perTicketErrors
