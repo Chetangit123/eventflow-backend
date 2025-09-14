@@ -119,7 +119,8 @@ const { GarbaGalaTemplate } = require("../emailTemplates/ticketTemplate");
 const sendMail = require("../utils/sendMail");
 const { thanksMailToUser } = require("../emailTemplates/thanksMailTemplate");
 const { v4: uuidv4 } = require("uuid");
-
+const ENVIRONMENT = require("../config/env");
+console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
 const USE_PDF = false;
 const TICKETS_DIR = path.resolve(process.cwd(), "uploads", "tickets");
 
@@ -184,7 +185,7 @@ exports.generateTicketsForBooking = async (bookingId) => {
             if (USE_PDF) {
                 let browser;
                 const puppeteer = require("puppeteer");
-                if (process.env.NODE_ENV === "production") {
+                if (ENVIRONMENT.NODE_ENV === "production") {
                     console.log("enteringggg in production")
                     browser = await puppeteer.launch({
                         headless: "new",
