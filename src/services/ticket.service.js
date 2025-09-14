@@ -123,6 +123,7 @@ const ENVIRONMENT = require("../config/env");
 console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
 const USE_PDF = false;
 const TICKETS_DIR = path.resolve(process.cwd(), "uploads", "tickets");
+const puppeteer = require("puppeteer");
 
 async function generateTicketId(eventCode) {
     const year = new Date().getFullYear();
@@ -181,10 +182,9 @@ exports.generateTicketsForBooking = async (bookingId) => {
             const fileName = `${ticketId}.${USE_PDF ? "pdf" : "png"}`;
             const absPath = path.join(TICKETS_DIR, fileName);
             const serverPath = `/uploads/tickets/${fileName}`; // store in DB if you serve /uploads statically
-
+            console.log("Enteringggggg into generating the ticket")
             if (USE_PDF) {
                 let browser;
-                const puppeteer = require("puppeteer");
                 if (ENVIRONMENT.NODE_ENV === "development") {
                     console.log("enteringggg in production")
                     browser = await puppeteer.launch({
@@ -202,6 +202,7 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 await page.pdf({ path: absPath, format: "A4", printBackground: true });
                 await browser.close();
             } else {
+                console.log("enteringggg in dev", "hello", "ticket image")
                 await nodeHtmlToImage({ output: absPath, html: htmlContent });
             }
 
