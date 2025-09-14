@@ -184,7 +184,11 @@ exports.generateTicketsForBooking = async (bookingId) => {
 
             if (USE_PDF) {
                 const puppeteer = require("puppeteer");
-                const browser = await puppeteer.launch({ headless: "new" });
+                // const browser = await puppeteer.launch({ headless: "new" });
+                const browser = await puppeteer.launch({
+                    executablePath: '/usr/bin/google-chrome', // or wherever Chrome is installed
+                    headless: "new"
+                });
                 const page = await browser.newPage();
                 await page.setContent(htmlContent, { waitUntil: "networkidle0" });
                 await page.pdf({ path: absPath, format: "A4", printBackground: true });
