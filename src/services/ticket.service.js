@@ -185,10 +185,24 @@ exports.generateTicketsForBooking = async (bookingId) => {
             if (USE_PDF) {
                 const puppeteer = require("puppeteer");
                 // const browser = await puppeteer.launch({ headless: "new" });
+                // const browser = await puppeteer.launch({
+                //     executablePath: '/usr/bin/google-chrome', // or wherever Chrome is installed
+                //     headless: "new"
+                // });
                 const browser = await puppeteer.launch({
-                    executablePath: '/usr/bin/google-chrome', // or wherever Chrome is installed
-                    headless: "new"
-                });
+                    headless: true,
+                    executablePath: '/usr/bin/chromium-browser', // ubuntu pe chromium path
+                    args: [
+                      '--no-sandbox',
+                      '--disable-setuid-sandbox',
+                      '--disable-dev-shm-usage',
+                      '--disable-accelerated-2d-canvas',
+                      '--no-first-run',
+                      '--no-zygote',
+                      '--single-process',
+                      '--disable-gpu'
+                    ]
+                  });
                 const page = await browser.newPage();
                 await page.setContent(htmlContent, { waitUntil: "networkidle0" });
                 await page.pdf({ path: absPath, format: "A4", printBackground: true });
