@@ -355,7 +355,8 @@ exports.generateTicketsForBooking = async (bookingId) => {
 
             if (USE_PDF) {
                 const puppeteer = require("puppeteer");
-                const browser = await puppeteer.launch({ headless: "new" });
+                //for system server
+                const browser = await puppeteer.launch({ headless: "new", executablePath: '/usr/bin/chromium-browser', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
                 const page = await browser.newPage();
                 await page.setContent(htmlContent, { waitUntil: "networkidle0" });
                 await page.pdf({ path: absPath, format: "A4", printBackground: true });
