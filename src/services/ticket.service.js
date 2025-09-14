@@ -345,16 +345,7 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 const browser = await puppeteer.launch({
                     headless: true,
                     executablePath: '/usr/bin/google-chrome',
-                    args: [
-                      '--no-sandbox',
-                      '--disable-setuid-sandbox',
-                      '--disable-dev-shm-usage',
-                      '--disable-accelerated-2d-canvas',
-                      '--no-first-run',
-                      '--no-zygote',
-                      '--single-process',
-                      '--disable-gpu'
-                    ]
+                    args: ['--no-sandbox', '--disable-setuid-sandbox']
                   });
                 const page = await browser.newPage();
                 await page.setContent(htmlContent, { waitUntil: "networkidle0" });
