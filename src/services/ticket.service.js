@@ -121,7 +121,7 @@ const { thanksMailToUser } = require("../emailTemplates/thanksMailTemplate");
 const { v4: uuidv4 } = require("uuid");
 const ENVIRONMENT = require("../config/env");
 console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
-const USE_PDF = true;
+const USE_PDF = false;
 const TICKETS_DIR = path.resolve(process.cwd(), "uploads", "tickets");
 const puppeteer = require("puppeteer");
 
@@ -203,7 +203,22 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 await browser.close();
             } else {
                 console.log("enteringggg in dev", "hello", "ticket image")
-                await nodeHtmlToImage({ output: absPath, html: htmlContent });
+                // await nodeHtmlToImage({ output: absPath, html: htmlContent });
+                // Replace your nodeHtmlToImage call:
+                await nodeHtmlToImage({
+                    output: absPath,
+                    html: htmlContent,
+                    type: 'png',
+                    quality: 100,
+                    waitUntil: 'networkidle0',
+                    puppeteerArgs: {
+                        headless: 'new',
+                        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                        // Point to your Chromium if needed (e.g., snap or system chrome)
+                        executablePath: ENVIRONMENT.NODE_ENV === 'development' ? '/snap/bin/chromium' : undefined,
+                    },
+                });
+
             }
 
             tickets.push({
