@@ -1,10 +1,15 @@
 const dotenv = require("dotenv");
-// Decide kaunsa .env load karna hai
+
+// Decide which env file to load
+console.log(process.env.NODE_ENV, "111111111111");
 const envFile = process.env.NODE_ENV === "production" ? ".env.production" : ".env.development";
+
 dotenv.config({ path: envFile });
 
 console.log(`NODE_ENV: ${process.env.NODE_ENV}`);
+console.log(envFile, "envFileeeee");
 
+// Now the ENVIRONMENT object
 const ENVIRONMENT = {
     NODE_ENV: process.env.NODE_ENV,
     JWT_SECRET: process.env.JWT_SECRET || "your_jwt_secret_key",

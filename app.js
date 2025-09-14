@@ -9,6 +9,7 @@ const globalErrorHandler = require("./src/middlewares/errorHandler");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./src/config/swagger");
 const path = require("path");
+const ENVIRONMENT = require("./src/config/env");
 //cron file
 require("./src/workers/ticketGenerator");
 require("./src/workers/cancelOrderCron");
