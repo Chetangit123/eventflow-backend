@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
@@ -13,7 +14,7 @@ const ENVIRONMENT = require("./src/config/env");
 //cron file
 require("./src/workers/ticketGenerator");
 require("./src/workers/cancelOrderCron");
-require("dotenv").config();
+console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
 
 const app = express();
 

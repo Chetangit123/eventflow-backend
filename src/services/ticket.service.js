@@ -120,7 +120,7 @@ const sendMail = require("../utils/sendMail");
 const { thanksMailToUser } = require("../emailTemplates/thanksMailTemplate");
 const { v4: uuidv4 } = require("uuid");
 const ENVIRONMENT = require("../config/env");
-console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
+console.log(ENVIRONMENT.NODE_ENV, " in ticket service")
 const USE_PDF = false;
 const TICKETS_DIR = path.resolve(process.cwd(), "uploads", "tickets");
 const puppeteer = require("puppeteer");
