@@ -47,3 +47,10 @@ exports.getPolicy = catchAsync(async (req, res, next) => {
   if (!doc) return next(new AppError(`${capitalizeWords(type)} not found`, 404));
   return successRes(res, 200, true, `${capitalizeWords(type)} retrieved successfully`, doc);
 });
+
+
+exports.getAllPolicies = catchAsync(async (req, res, next) => {
+  let policies = await legalSchema.find();
+  if (!policies) return next(new AppError("Policies not found", 404));
+  return successRes(res, 200, true, "Policies retrieved successfully", policies);
+});
