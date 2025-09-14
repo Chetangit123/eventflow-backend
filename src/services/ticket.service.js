@@ -121,7 +121,7 @@ const { thanksMailToUser } = require("../emailTemplates/thanksMailTemplate");
 const { v4: uuidv4 } = require("uuid");
 const ENVIRONMENT = require("../config/env");
 console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
-const USE_PDF = false;
+const USE_PDF = true;
 const TICKETS_DIR = path.resolve(process.cwd(), "uploads", "tickets");
 const puppeteer = require("puppeteer");
 
