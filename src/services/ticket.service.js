@@ -281,6 +281,8 @@ async function generateTicketId(eventCode) {
 //     return browser;
 // }
 
+
+
 exports.generateTicketsForBooking = async (bookingId) => {
     const booking = await TicketBooking.findById(bookingId)
         .populate("event")
@@ -342,7 +344,7 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 // });
                 const browser = await puppeteer.launch({
                     headless: true,
-                    executablePath: '/usr/bin/chromium-browser', // ubuntu pe chromium path
+                    executablePath: '/usr/bin/google-chrome',
                     args: [
                       '--no-sandbox',
                       '--disable-setuid-sandbox',

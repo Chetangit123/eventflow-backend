@@ -68,7 +68,6 @@
 
 // workers/ticketWorker.js
 
-
 const cron = require("node-cron");
 const TicketBooking = require("../models/TicketBooking");
 const { generateTicketsForBooking } = require("../services/ticket.service");
@@ -145,28 +144,26 @@ cron.schedule("*/1 * * * *", async () => {
                 subject: `⚠️ Ticket Generation Failed (Booking ${booking._id})`,
                 text: `Booking failed after ${MAX_RETRIES} retries.
 
-Booking ID: ${booking._id}
-User: ${booking.user}
-Event: ${booking.event}
-Session: ${booking.eventSession}
-Error(s): ${
+                Booking ID: ${booking._id}
+                User: ${booking.user}
+                Event: ${booking.event}
+                Session: ${booking.eventSession}
+                Error(s): ${
                   (result.errors || [])
                     .map((e) => `${e.ticketId}: ${e.error}`)
                     .join(", ") || "Unknown"
                 }
                 `,
-              });
-              console.log(
-                `🚨 Admin notified about booking ${booking._id} failure`
-              );
-            } catch (mailErr) {
-              console.error(
-                `❌ Failed to notify admin for ${booking._id}:`,
-                mailErr.message
-              );
-            }
-          }
-        } else {
+                    });
+                 console.log(`🚨 Admin notified about booking ${booking._id} failure`);
+                 } catch (mailErr) {
+                     console.error(
+                     `❌ Failed to notify admin for ${booking._id}:`,
+                    mailErr.message);
+                  }
+             }
+        } 
+        else {
           // Success → clear error fields
           await TicketBooking.updateOne(
             { _id: booking._id },
