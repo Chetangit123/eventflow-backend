@@ -109,7 +109,6 @@
 //     });
 // };
 
-
 // src/services/ticket.service.js
 const QRCode = require("qrcode");
 const nodeHtmlToImage = require("node-html-to-image");
@@ -125,9 +124,9 @@ const USE_PDF = false;
 const TICKETS_DIR = path.resolve(process.cwd(), "uploads", "tickets");
 
 async function generateTicketId(eventCode) {
-    const year = new Date().getFullYear();
-    const uniqueId = uuidv4().split("-")[0];
-    return `${eventCode.toUpperCase()}-${year}-${uniqueId}`;
+  const year = new Date().getFullYear();
+  const uniqueId = uuidv4().split("-")[0];
+  return `${eventCode.toUpperCase()}-${year}-${uniqueId}`;
 }
 
 // exports.generateTicketsForBooking = async (bookingId) => {
@@ -254,7 +253,6 @@ async function generateTicketId(eventCode) {
 //     };
 // };
 
-
 // let browser = null;
 
 // async function getBrowser() {
@@ -281,132 +279,145 @@ async function generateTicketId(eventCode) {
 //     return browser;
 // }
 
-
-
 exports.generateTicketsForBooking = async (bookingId) => {
-    const booking = await TicketBooking.findById(bookingId)
-        .populate("event")
-        .populate("eventSession")
-        .populate("user");
+  const booking = await TicketBooking.findById(bookingId)
+    .populate("event")
+    .populate("eventSession")
+    .populate("user");
 
-    if (!booking) throw new Error("Booking not found");
+  if (!booking) throw new Error("Booking not found");
 
-    // Idempotency guard
-    if (booking.ticketStatus === "confirmed" && booking.tickets?.length === booking.quantity) {
-        return { success: true, skipped: true, reason: "already_confirmed" };
-    }
+  // Idempotency guard
+  if (
+    booking.ticketStatus === "confirmed" &&
+    booking.tickets?.length === booking.quantity
+  ) {
+    return { success: true, skipped: true, reason: "already_confirmed" };
+  }
 
-    const eventData = booking.event;
-    const sessionData = booking.eventSession;
-    const user = booking.user;
+  const eventData = booking.event;
+  const sessionData = booking.eventSession;
+  const user = booking.user;
 
-    if (!fs.existsSync(TICKETS_DIR)) fs.mkdirSync(TICKETS_DIR, { recursive: true });
+  if (!fs.existsSync(TICKETS_DIR))
+    fs.mkdirSync(TICKETS_DIR, { recursive: true });
 
-    const tickets = [];
-    const perTicketErrors = [];
+  const tickets = [];
+  const perTicketErrors = [];
 
-    for (const attendee of booking.attendeeDetails) {
-        const ticketId = await generateTicketId("TAAL");
-        let status = "generated";
+  for (const attendee of booking.attendeeDetails) {
+    const ticketId = await generateTicketId("TAAL");
+    let status = "generated";
 
-        try {
-            const qrPayload = {
-                ticketId,
-                attendeeName: attendee.name,
-                eventName: eventData?.title || eventData?.name || "Event",
-                dateTime: `${sessionData.date} | ${sessionData.startTime}-${sessionData.endTime}`
-            };
+    try {
+      const qrPayload = {
+        ticketId,
+        attendeeName: attendee.name,
+        eventName: eventData?.title || eventData?.name || "Event",
+        dateTime: `${sessionData.date} | ${sessionData.startTime}-${sessionData.endTime}`,
+      };
 
-            const qrImage = await QRCode.toDataURL(JSON.stringify(qrPayload));
+      const qrImage = await QRCode.toDataURL(JSON.stringify(qrPayload));
 
-            const htmlContent = GarbaGalaTemplate({
-                headline: eventData?.title || eventData?.name || "Event",
-                dateText: sessionData.date,
-                timeText: `${sessionData.startTime}-${sessionData.endTime}`,
-                venueText: eventData?.venueName || "",
-                noteText: "Show this ticket at entry",
-                tagline: eventData?.description || "",
-                qrCodeLink: qrImage,
-                attendeeName: attendee.name,
-                ticketId
-            });
+      const htmlContent = GarbaGalaTemplate({
+        headline: eventData?.title || eventData?.name || "Event",
+        dateText: sessionData.date,
+        timeText: `${sessionData.startTime}-${sessionData.endTime}`,
+        venueText: eventData?.venueName || "",
+        noteText: "Show this ticket at entry",
+        tagline: eventData?.description || "",
+        qrCodeLink: qrImage,
+        attendeeName: attendee.name,
+        ticketId,
+      });
 
-            const fileName = `${ticketId}.${USE_PDF ? "pdf" : "png"}`;
-            const absPath = path.join(TICKETS_DIR, fileName);
-            const serverPath = `/uploads/tickets/${fileName}`; // store in DB if /uploads served statically
+      const fileName = `${ticketId}.${USE_PDF ? "pdf" : "png"}`;
+      const absPath = path.join(TICKETS_DIR, fileName);
+      const serverPath = `/uploads/tickets/${fileName}`; // store in DB if /uploads served statically
 
-            if (USE_PDF) {
-                const puppeteer = require("puppeteer");
-                // const browser = await puppeteer.launch({ headless: "new" });
-                // const browser = await puppeteer.launch({
-                //     executablePath: '/usr/bin/google-chrome', // or wherever Chrome is installed
-                //     headless: "new"
-                // });
-                const browser = await puppeteer.launch({
-                    headless: true,
-                    executablePath: '/usr/bin/google-chrome',
-                    args: ['--no-sandbox', '--disable-setuid-sandbox']
-                  });
-                const page = await browser.newPage();
-                await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-                await page.pdf({ path: absPath, format: "A4", printBackground: true });
-                await page.close();
-            } else {
-                await nodeHtmlToImage({ output: absPath, html: htmlContent });
-            }
-
-            tickets.push({
-                ticketId,
-                qrImage,
-                qrData: JSON.stringify(qrPayload),
-                pdfPath: serverPath,
-                attendeeName: attendee.name,
-                status
-            });
-        } catch (err) {
-            status = "failed";
-            perTicketErrors.push({ ticketId, attendee: attendee.name, error: err.message });
-            tickets.push({
-                ticketId,
-                attendeeName: attendee.name,
-                status,
-                error: err.message
-            });
-        }
-    }
-
-    // Decide overall status
-    const allGenerated = tickets.every(t => t.status === "generated");
-    booking.tickets = tickets;
-    booking.ticketStatus = allGenerated ? "confirmed" : "failed";
-    await booking.save();
-
-    // Send email only if any ticket generated
-    const generatedTickets = tickets.filter(t => t.status === "generated");
-    if (generatedTickets.length > 0) {
-        const emailTemplate = thanksMailToUser({
-            name: user?.name || "Guest",
-            eventName: eventData?.title || eventData?.name || "Event",
-            eventDate: sessionData.date,
-            eventTime: `${sessionData.startTime}-${sessionData.endTime}`,
-            venue: eventData?.venueName || "",
-            ticketIds: generatedTickets.map(t => t.ticketId)
+      if (USE_PDF) {
+        const puppeteer = require("puppeteer");
+        // const browser = await puppeteer.launch({ headless: "new" });
+        // const browser = await puppeteer.launch({
+        //     executablePath: '/usr/bin/google-chrome', // or wherever Chrome is installed
+        //     headless: "new"
+        // });
+        const browser = await puppeteer.launch({
+          headless: true,
+          executablePath: "/usr/bin/google-chrome",
+          args: ["--no-sandbox", "--disable-setuid-sandbox"],
+          env: {
+            ...process.env,
+            CHROME_DEVEL_SANDBOX: "/usr/bin/chrome-devel-sandbox",
+          },
         });
+        const page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+        await page.pdf({ path: absPath, format: "A4", printBackground: true });
+        await page.close();
+      } else {
+        await nodeHtmlToImage({ output: absPath, html: htmlContent });
+      }
 
-        await sendMail({
-            to: user.email,
-            subject: "Your Event Tickets",
-            text: "Your ticket booking details",
-            template: emailTemplate,
-            attachments: generatedTickets.map(t => ({
-                filename: `${t.ticketId}.${USE_PDF ? "pdf" : "png"}`,
-                path: path.join(TICKETS_DIR, `${t.ticketId}.${USE_PDF ? "pdf" : "png"}`)
-            }))
-        });
+      tickets.push({
+        ticketId,
+        qrImage,
+        qrData: JSON.stringify(qrPayload),
+        pdfPath: serverPath,
+        attendeeName: attendee.name,
+        status,
+      });
+    } catch (err) {
+      status = "failed";
+      perTicketErrors.push({
+        ticketId,
+        attendee: attendee.name,
+        error: err.message,
+      });
+      tickets.push({
+        ticketId,
+        attendeeName: attendee.name,
+        status,
+        error: err.message,
+      });
     }
+  }
 
-    return {
-        success: allGenerated,
-        errors: perTicketErrors
-    };
+  // Decide overall status
+  const allGenerated = tickets.every((t) => t.status === "generated");
+  booking.tickets = tickets;
+  booking.ticketStatus = allGenerated ? "confirmed" : "failed";
+  await booking.save();
+
+  // Send email only if any ticket generated
+  const generatedTickets = tickets.filter((t) => t.status === "generated");
+  if (generatedTickets.length > 0) {
+    const emailTemplate = thanksMailToUser({
+      name: user?.name || "Guest",
+      eventName: eventData?.title || eventData?.name || "Event",
+      eventDate: sessionData.date,
+      eventTime: `${sessionData.startTime}-${sessionData.endTime}`,
+      venue: eventData?.venueName || "",
+      ticketIds: generatedTickets.map((t) => t.ticketId),
+    });
+
+    await sendMail({
+      to: user.email,
+      subject: "Your Event Tickets",
+      text: "Your ticket booking details",
+      template: emailTemplate,
+      attachments: generatedTickets.map((t) => ({
+        filename: `${t.ticketId}.${USE_PDF ? "pdf" : "png"}`,
+        path: path.join(
+          TICKETS_DIR,
+          `${t.ticketId}.${USE_PDF ? "pdf" : "png"}`
+        ),
+      })),
+    });
+  }
+
+  return {
+    success: allGenerated,
+    errors: perTicketErrors,
+  };
 };
