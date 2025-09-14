@@ -185,7 +185,7 @@ exports.generateTicketsForBooking = async (bookingId) => {
             if (USE_PDF) {
                 let browser;
                 const puppeteer = require("puppeteer");
-                if (ENVIRONMENT.NODE_ENV === "production") {
+                if (ENVIRONMENT.NODE_ENV === "development") {
                     console.log("enteringggg in production")
                     browser = await puppeteer.launch({
                         headless: "new",
