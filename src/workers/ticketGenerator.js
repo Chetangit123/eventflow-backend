@@ -111,6 +111,12 @@ cron.schedule("*/1 * * * *", async () => {
       try {
         const result = await generateTicketsForBooking(booking._id);
 
+        console.log(
+          `✅ Tickets generated for booking ${booking._id} (attempt ${
+            booking.retryCount || 0
+          })`
+        );
+
         if (!result.success) {
           // Partial/failed → retry or fail hard
           const nextRetry = (booking.retryCount || 0) + 1;

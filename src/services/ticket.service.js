@@ -255,31 +255,31 @@ async function generateTicketId(eventCode) {
 // };
 
 
-let browser = null;
+// let browser = null;
 
-async function getBrowser() {
-    if (browser) return browser;
+// async function getBrowser() {
+//     if (browser) return browser;
 
-    const envPath = process.env.CHROME_BIN || undefined; // set CHROME_BIN=/usr/bin/google-chrome-stable if you installed it
-    const launchOptions = {
-        headless: true,
-        executablePath: envPath, // undefined => let puppeteer use its downloaded Chromium
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--no-zygote',
-            '--single-process',
-        ],
-        ignoreHTTPSErrors: true,
-        defaultViewport: { width: 1280, height: 800 },
-    };
+//     const envPath = process.env.CHROME_BIN || undefined; // set CHROME_BIN=/usr/bin/google-chrome-stable if you installed it
+//     const launchOptions = {
+//         headless: true,
+//         executablePath: envPath, // undefined => let puppeteer use its downloaded Chromium
+//         args: [
+//             '--no-sandbox',
+//             '--disable-setuid-sandbox',
+//             '--disable-dev-shm-usage',
+//             '--disable-gpu',
+//             '--no-zygote',
+//             '--single-process',
+//         ],
+//         ignoreHTTPSErrors: true,
+//         defaultViewport: { width: 1280, height: 800 },
+//     };
 
-    browser = await puppeteer.launch(launchOptions);
-    browser.on('disconnected', () => { browser = null; });
-    return browser;
-}
+//     browser = await puppeteer.launch(launchOptions);
+//     browser.on('disconnected', () => { browser = null; });
+//     return browser;
+// }
 
 exports.generateTicketsForBooking = async (bookingId) => {
     const booking = await TicketBooking.findById(bookingId)
