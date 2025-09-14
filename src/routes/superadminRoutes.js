@@ -11,6 +11,7 @@ const adminOrderManagementController = require("../controllers/adminController/a
 const adminRentProductController = require("../controllers/adminController/adminRentProductController");
 const adminPolicyController = require("../controllers/adminController/adminPolicyController");
 const bookingController =  require("../controllers/commonController/bookingController");
+const contactUsController = require("../controllers/adminController/contactUsController");
 const { protect } = require("../utils/jwt");
 const { validateBody, validateQuery } = require("../middlewares/validate");
 const categoryValidation = require("../validations/categoryValidation");
@@ -83,5 +84,8 @@ router.get("/get-policy",protect("superadmin"), adminPolicyController.getPolicy)
 /** ====================== Common Management=================*/
 
 router.get('/ticket-reports',protect ('superadmin'), bookingController.getTicketReport)
+
+/**========================Contact Us==================== */
+router.get("/get-all-contacts",protect("superadmin"), contactUsController.getAllContactUs);
 
 module.exports = router;

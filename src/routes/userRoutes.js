@@ -10,10 +10,12 @@ const paymentController = require("../controllers/commonController/paymentContro
 const rentBookingController = require("../controllers/userController/rentBookingController");
 const rentCartController = require("../controllers/userController/rentCartController");
 const policyController = require("../controllers/userController/policyController");
+const contactUsController = require("../controllers/userController/contactUsController");
 const { protect } = require("../utils/jwt");
 const { uploadUserProfile } = require("../services/multer");
 const bookingValidation = require("../validations/bookingValidation");
 const { validateBody } = require("../middlewares/validate");
+const contactUs = require("../models/contactUs");
 
 
 
@@ -86,4 +88,10 @@ router.get('/get-rent-cart', protect('user'), rentCartController.getRentCart);
 /** ==================Policy Management================= */
 
 router.get("/get-policy", policyController.getPolicy);
+
+
+
+/**====================== Contact Us =========================== */
+router.post('/contact-us',  contactUsController.createContactUs);
+
 module.exports = router;
