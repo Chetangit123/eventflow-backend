@@ -5,155 +5,7 @@ const AppError = require("../../utils/AppError");
 const catchAsync = require("../../utils/catchAsync");
 const { successRes } = require("../../utils/responseFormatter");
 const mongoose = require("mongoose");
-
-// exports.validateTicket = catchAsync(async (req, res, next) => {
-//     const ticketId = req?.body?.ticketId;
-//     const gatekeeperId = req.user?._id;
-
-//     if (!ticketId) {
-//         return next(new AppError("Ticket ID is required", 400));
-//     }
-
-//     const session = await mongoose.startSession();
-//     session.startTransaction();
-
-//     try {
-//         let bookingQb = new QueryBuilder(TicketBooking);
-//         const booking = await bookingQb
-//             .findOne({ "tickets.ticketId": ticketId })
-//             .populate("event")
-//             .populate("eventSession")
-//             .session(session)
-//             .exec();
-
-//         let result = "valid";
-//         let responseMsg = "Ticket validated successfully";
-//         let extraData = {};
-
-//         if (!booking) {
-//             result = "not_found";
-//             responseMsg = "Invalid Ticket - not found";
-
-//             await GatekeeperScan.create([{
-//                 gatekeeper: gatekeeperId,
-//                 eventSession: null,
-//                 event: null,
-//                 ticketId,
-//                 result,
-//                 notes: responseMsg
-//             }], { session });
-
-//             await session.commitTransaction();
-//             session.endSession();
-//             return successRes(res, 404, false, responseMsg, extraData);
-//         }
-
-//         const ticket = booking.tickets.find(t => t.ticketId === ticketId);
-//         if (!ticket) {
-//             result = "not_found";
-//             responseMsg = "Invalid Ticket - not found";
-
-//             await GatekeeperScan.create([{
-//                 gatekeeper: gatekeeperId,
-//                 ticketId,
-//                 ticketRef: null,
-//                 eventSession: booking.eventSession,
-//                 event: booking.event,
-//                 result,
-//                 notes: responseMsg
-//             }], { session });
-
-//             await session.commitTransaction();
-//             session.endSession();
-//             return successRes(res, 404, false, responseMsg, extraData);
-//         }
-
-//         // ✅ Check session status (cancelled or completed)
-//         if (booking.eventSession?.status === "cancelled") {
-//             result = "invalid";
-//             responseMsg = "This event session has been cancelled";
-//         } else if (booking.eventSession?.status === "completed") {
-//             result = "invalid";
-//             responseMsg = "This event session has already been completed";
-//         } else if (ticket.status !== "generated") {
-//             result = "invalid";
-//             responseMsg = "Ticket not active";
-//         } else if (booking.paymentStatus !== "paid") {
-//             result = "invalid";
-//             responseMsg = "Payment not verified";
-//         } else if (ticket.scanned) {
-//             result = "already_scanned";
-//             responseMsg = "Ticket already used";
-//             extraData = {
-//                 scannedAt: ticket.scannedAt,
-//                 attendeeName: ticket.attendeeName,
-//                 eventName: booking.event.name,
-//             };
-//         } else {
-//             const now = new Date();
-//             console.log(now, "now")
-//             const sessionDate = new Date(booking.eventSession.date);
-//             console.log(sessionDate, "sessionDate")
-//             const startDateTime = new Date(`${booking.eventSession.date}T${booking.eventSession.startTime}`);
-//             console.log(startDateTime, "startDateTime")
-//             const endDateTime = new Date(`${booking.eventSession.date}T${booking.eventSession.endTime}`);
-//             console.log(endDateTime, "endDateTime")
-//             console.log(now.toDateString(), "now.toDateString()", sessionDate.toDateString(), "sessionDate.toDateString()")
-//             if (now.toDateString() !== sessionDate.toDateString()) {
-//                 result = "invalid";
-//                 responseMsg = "Ticket not valid for today";
-//             } else if (now < startDateTime) {
-//                 result = "invalid";
-//                 responseMsg = "Event has not started yet";
-//             } else if (now > endDateTime) {
-//                 result = "expired";
-//                 responseMsg = "Event already ended";
-//             } else {
-//                 // ✅ Valid ticket -> mark scanned
-//                 ticket.scanned = true;
-//                 ticket.scannedAt = now;
-//                 await booking.save({ session });
-
-//                 result = "valid";
-//                 responseMsg = "Ticket validated successfully";
-//                 extraData = {
-//                     ticketId: ticket.ticketId,
-//                     attendeeName: ticket.attendeeName,
-//                     eventName: booking.event.name,
-//                     eventDateTime: `${booking.eventSession.date} | ${booking.eventSession.startTime}-${booking.eventSession.endTime}`,
-//                     scannedAt: ticket.scannedAt,
-//                 };
-//             }
-//         }
-
-//         // 🎯 Save scan log
-//         await GatekeeperScan.create([{
-//             gatekeeper: gatekeeperId,
-//             ticketId,
-//             eventSession: booking.eventSession,
-//             ticketRef: ticket?._id,
-//             event: booking.event,
-//             result,
-//             notes: responseMsg
-//         }], { session });
-
-//         await session.commitTransaction();
-//         session.endSession();
-
-//         return successRes(
-//             res,
-//             result === "valid" ? 200 : 400,
-//             result === "valid",
-//             responseMsg,
-//             extraData
-//         );
-
-//     } catch (err) {
-//         await session.abortTransaction();
-//         session.endSession();
-//         return next(new AppError(err.message, 500));
-//     }
-// });
+const moment = require("moment-timezone");
 
 exports.validateTicket = catchAsync(async (req, res, next) => {
     const ticketId = req?.body?.ticketId;
@@ -239,38 +91,41 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
                 eventName: booking.event.name,
             };
         } else {
-            // ✅ Convert dates using IST timezone
-            const now = new Date();
-            const nowIST = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+            const now = moment().tz("Asia/Kolkata"); // Get current time in IST
+            console.log(now.format(), "now");
 
-            const sessionDate = new Date(booking.eventSession.date + "T00:00:00");
-            const sessionDateIST = new Date(sessionDate.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+            const sessionDate = moment.tz(booking.eventSession.date, "YYYY-MM-DD", "Asia/Kolkata");
+            console.log(sessionDate.format(), "sessionDate");
 
-            const startDateTime = new Date(`${booking.eventSession.date}T${booking.eventSession.startTime}:00`);
-            const startDateTimeIST = new Date(startDateTime.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+            const startDateTime = moment.tz(
+                `${booking.eventSession.date} ${booking.eventSession.startTime}`,
+                "YYYY-MM-DD HH:mm",
+                "Asia/Kolkata"
+            );
+            console.log(startDateTime.format(), "startDateTime");
 
-            const endDateTime = new Date(`${booking.eventSession.date}T${booking.eventSession.endTime}:00`);
-            const endDateTimeIST = new Date(endDateTime.toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+            const endDateTime = moment.tz(
+                `${booking.eventSession.date} ${booking.eventSession.endTime}`,
+                "YYYY-MM-DD HH:mm",
+                "Asia/Kolkata"
+            );
+            console.log(endDateTime.format(), "endDateTime");
 
-            console.log(nowIST, "now IST");
-            console.log(sessionDateIST, "sessionDate IST");
-            console.log(startDateTimeIST, "startDateTime IST");
-            console.log(endDateTimeIST, "endDateTime IST");
-
-            if (nowIST.toDateString() !== sessionDateIST.toDateString()) {
+            // Compare dates based on IST timezone
+            if (!now.isSame(sessionDate, 'day')) {
                 result = "invalid";
                 responseMsg = "Ticket not valid for today";
-            } else if (nowIST < startDateTimeIST) {
+            } else if (now.isBefore(startDateTime)) {
                 result = "invalid";
                 responseMsg = "Event has not started yet";
-            } else if (nowIST > endDateTimeIST) {
+            } else if (now.isAfter(endDateTime)) {
                 result = "expired";
                 responseMsg = "Event already ended";
             } else {
                 // ✅ Valid ticket -> mark scanned
                 ticket.scanned = true;
                 ticket.scannedAt = now;
-                await booking.save({ session });
+                // await booking.save({ session });
 
                 result = "valid";
                 responseMsg = "Ticket validated successfully";
@@ -312,7 +167,6 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
         return next(new AppError(err.message, 500));
     }
 });
-
 
 // 📌 Get Scanned History
 exports.getScannedHistory = catchAsync(async (req, res, next) => {
