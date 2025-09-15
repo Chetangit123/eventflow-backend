@@ -25,8 +25,23 @@ const app = express();
 // Secure HTTP headers
 app.use(helmet());
 
+const corsOptions = {
+    origin: function (origin, callback) {
+        if (ENVIRONMENT.NODE_ENV === 'development') {
+            callback(null, 'http://localhost:3000');
+        } else if (ENVIRONMENT.NODE_ENV === 'production') {
+            callback(null, 'http://localhost:3000');
+        } else {
+            callback(null, false);
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+};
+
 // Enable CORS
-app.use(cors());
+app.use(cors(corsOptions));
 
 // Parse JSON body
 app.use(express.json());
