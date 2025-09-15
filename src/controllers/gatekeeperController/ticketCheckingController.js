@@ -91,10 +91,14 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
             };
         } else {
             const now = new Date();
+            console.log(now, "now")
             const sessionDate = new Date(booking.eventSession.date);
+            console.log(sessionDate, "sessionDate")
             const startDateTime = new Date(`${booking.eventSession.date}T${booking.eventSession.startTime}`);
+            console.log(startDateTime, "startDateTime")
             const endDateTime = new Date(`${booking.eventSession.date}T${booking.eventSession.endTime}`);
-
+            console.log(endDateTime, "endDateTime")
+            console.log(now.toDateString(), "now.toDateString()", sessionDate.toDateString(), "sessionDate.toDateString()")
             if (now.toDateString() !== sessionDate.toDateString()) {
                 result = "invalid";
                 responseMsg = "Ticket not valid for today";
