@@ -10,7 +10,7 @@ const adminCategoryController = require("../controllers/adminController/adminCat
 const adminOrderManagementController = require("../controllers/adminController/adminOrderManagementController");
 const adminRentProductController = require("../controllers/adminController/adminRentProductController");
 const adminPolicyController = require("../controllers/adminController/adminPolicyController");
-const bookingController =  require("../controllers/commonController/bookingController");
+const bookingController = require("../controllers/commonController/bookingController");
 const contactUsController = require("../controllers/adminController/contactUsController");
 const { protect } = require("../utils/jwt");
 const { validateBody, validateQuery } = require("../middlewares/validate");
@@ -38,13 +38,13 @@ router.put('/delete-event-manager', protect('superadmin'), adminManagerControlle
 router.get('/search-event-manager', protect('superadmin'), adminManagerController.searchEventManager);
 
 /* Gatekeeper Management Routes */
-router.post('/create-gatekeeper', protect('superadmin'), adminGatekeeperController.createGatekeeper);
-router.get('/get-all-gatekeepers', protect('superadmin'), adminGatekeeperController.getAllGatekeepers);
-router.get('/get-gatekeeper', protect('superadmin'), adminGatekeeperController.getGatekeeper);
+router.post('/create-gatekeeper', protect('superadmin', 'event_manager'), adminGatekeeperController.createGatekeeper);
+router.get('/get-all-gatekeepers', protect('superadmin', 'event_manager'), adminGatekeeperController.getAllGatekeepers);
+router.get('/get-gatekeeper', protect('superadmin', 'event_manager'), adminGatekeeperController.getGatekeeper);
 router.put('/block-unblock-gatekeeper', protect('superadmin'), adminGatekeeperController.blockUnblockGatekeeper);
-router.put('/update-gatekeeper', protect('superadmin'), adminGatekeeperController.updateGatekeeperProfile);
+router.put('/update-gatekeeper', protect('superadmin', 'event_manager'), adminGatekeeperController.updateGatekeeperProfile);
 router.put('/delete-gatekeeper', protect('superadmin'), adminGatekeeperController.deleteGatekeeper);
-router.get('/search-gatekeeper', protect('superadmin'), adminGatekeeperController.searchGateKeeper);
+router.get('/search-gatekeeper', protect('superadmin', 'event_manager'), adminGatekeeperController.searchGateKeeper);
 
 /** Category Management */
 router.post('/create-category', protect('superadmin'), validateBody(categoryValidation.createCategoryValidation), adminCategoryController.createCategory);
@@ -78,15 +78,15 @@ router.put('/update-order-status', protect('superadmin'), adminOrderManagementCo
 /** ====================== Policy Management================= */
 
 router.post("/create-or-update-policy", protect("superadmin"), adminPolicyController.createOrUpdatePolicy);
-router.get("/get-policy",protect("superadmin"), adminPolicyController.getPolicy);
-router.get("/get-all-policy",protect("superadmin"), adminPolicyController.getAllPolicies);
+router.get("/get-policy", protect("superadmin"), adminPolicyController.getPolicy);
+router.get("/get-all-policy", protect("superadmin"), adminPolicyController.getAllPolicies);
 
 
 /** ====================== Common Management=================*/
 
-router.get('/ticket-reports',protect ('superadmin'), bookingController.getTicketReport)
+router.get('/ticket-reports', protect('superadmin'), bookingController.getTicketReport)
 
 /**========================Contact Us==================== */
-router.get("/get-all-contacts",protect("superadmin"), contactUsController.getAllContactUs);
+router.get("/get-all-contacts", protect("superadmin"), contactUsController.getAllContactUs);
 
 module.exports = router;
