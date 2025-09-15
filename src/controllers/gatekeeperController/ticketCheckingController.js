@@ -125,7 +125,7 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
                 // ✅ Valid ticket -> mark scanned
                 ticket.scanned = true;
                 ticket.scannedAt = now;
-                // await booking.save({ session });
+                await booking.save({ session });
 
                 result = "valid";
                 responseMsg = "Ticket validated successfully";

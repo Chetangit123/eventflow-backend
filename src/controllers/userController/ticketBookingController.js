@@ -238,9 +238,9 @@ exports.bookTickets = catchAsync(async (req, res, next) => {
         return next(new AppError("Quantity must be a positive integer", 400));
     }
 
-    if (!Array.isArray(attendeeDetails) || attendeeDetails.length !== qty) {
-        return next(new AppError("Attendee details must be an array matching the quantity", 400));
-    }
+    // if (!Array.isArray(attendeeDetails) || attendeeDetails.length !== qty) {
+    //     return next(new AppError("Attendee details must be an array matching the quantity", 400));
+    // }
 
     let limitPerBooking = ENVIRONMENT.MAX_TICKETS_PER_BOOKING || 5;
     if (qty > limitPerBooking) {
