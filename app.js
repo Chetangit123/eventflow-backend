@@ -19,19 +19,19 @@ console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
 const app = express();
 
 app.use(helmet());
-
-app.use(cors({
-    origin: "*"
-}));
+const corsOptions = {
+    origin: "*", // allow all domains
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+};
+app.use(cors(corsOptions));
 
 app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
-// app.use("/uploads", cors(), express.static(path.join(__dirname, "uploads")));
-app.use("/uploads", (req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*"); // allow all origins
-    next();
-}, express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 
 
 app.use((req, res, next) => {
