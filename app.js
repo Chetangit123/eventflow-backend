@@ -53,11 +53,8 @@ app.use(express.json());
 
 // Optional: if you're using URL-encoded forms too
 app.use(express.urlencoded({ extended: true }));
-// app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-app.use('/uploads', cors({
-    origin: "https://taal.life",  // specific allowed origin
-    methods: ["GET"],
-}), express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 
 // ✅ Patch: Clone req.query before sanitization (avoids error)
 app.use((req, res, next) => {
