@@ -41,7 +41,14 @@ app.use(helmet());
 // };
 
 // Enable CORS
-app.use(cors());
+app.use(cors(
+    {
+        origin: "https://backend.taal.life",
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        // allowedHeaders: ["Content-Type", "Authorization"],
+        // credentials: true
+    }
+));
 
 // Parse JSON body
 app.use(express.json());
