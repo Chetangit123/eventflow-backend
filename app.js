@@ -25,27 +25,16 @@ const app = express();
 // Secure HTTP headers
 app.use(helmet());
 
-// const corsOptions = {
-//     origin: function (origin, callback) {
-//         if (ENVIRONMENT.NODE_ENV === 'development') {
-//             callback(null, 'http://localhost:3000');
-//         } else if (ENVIRONMENT.NODE_ENV === 'production') {
-//             callback(null, 'http://localhost:3000');
-//         } else {
-//             callback(null, false);
-//         }
-//     },
-//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-//     allowedHeaders: ['Content-Type', 'Authorization'],
-//     credentials: true,
-// };
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
+});
 
 // Enable CORS
 app.use(cors({
-    origin: "*",  // kisi bhi domain ko allow kar raha hai
-    // methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    // allowedHeaders: ["Content-Type", "Authorization"],
-    // credentials: true
+    origin: "*"
 }));
 
 // Parse JSON body
