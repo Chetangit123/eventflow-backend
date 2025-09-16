@@ -1,6 +1,5 @@
 require("dotenv").config();
 const express = require("express");
-const cors = require("cors");
 const helmet = require("helmet");
 const mongoSanitize = require("express-mongo-sanitize");
 const rateLimit = require("./src/middlewares/rateLimiter");
@@ -11,12 +10,24 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./src/config/swagger");
 const path = require("path");
 const ENVIRONMENT = require("./src/config/env");
-//cron file
+
+// Cron jobs
 require("./src/workers/ticketGenerator");
 require("./src/workers/cancelOrderCron");
-console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
+
+console.log(ENVIRONMENT.NODE_ENV, "NODEENV");
 
 const app = express();
+
+// ------------------------
+// ✅ Allowed Origins Setup
+// ------------------------
+const allowedOrigins = [
+    "https://taal.life",
+    "https://www.taal.life",
+    "https://admin.taal.life"
+    // Add more origins if needed
+];
 
 // ------------------------
 // ✅ Global Middlewares
@@ -25,25 +36,41 @@ const app = express();
 // Secure HTTP headers
 app.use(helmet());
 
+// ✅ CORS Middleware
 app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header("Access-Control-Allow-Origin", origin);
+    }
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    if (req.method === "OPTIONS") {
+        return res.status(200).end();
+    }
     next();
 });
-
-// Enable CORS
-app.use(cors({
-    origin: "*"
-}));
 
 // Parse JSON body
 app.use(express.json());
 
-// Optional: if you're using URL-encoded forms too
+// Parse URL-encoded forms
 app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// ✅ Static files with CORS applied
+app.use("/uploads", (req, res, next) => {
+    const origin = req.headers.origin;
+    if (allowedOrigins.includes(origin)) {
+        res.header("Access-Control-Allow-Origin", origin);
+    }
+    res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+    if (req.method === "OPTIONS") {
+        return res.status(200).end();
+    }
+    next();
+}, express.static(path.join(__dirname, "uploads")));
 
 // ✅ Patch: Clone req.query before sanitization (avoids error)
 app.use((req, res, next) => {
@@ -51,9 +78,7 @@ app.use((req, res, next) => {
     next();
 });
 
-
-
-// Rate limiter to prevent abuse
+// ✅ Rate limiter (uncomment if needed)
 // app.use(rateLimit);
 
 // ------------------------
@@ -62,22 +87,23 @@ app.use((req, res, next) => {
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ------------------------
-// ✅ Routes
+// ✅ API Routes
 // ------------------------
 app.use("/api/v1", indexRoutes);
 
-//dummy route
+// Dummy route
 app.get("/api/v1/test", (req, res) => {
     res.send("Hello world!");
 });
 
 // ------------------------
-// ✅ 404 + Error Handler
+// ✅ 404 + Global Error Handler
 // ------------------------
 app.use(notFound);
 app.use(globalErrorHandler);
 
 module.exports = app;
+
 
 
 
