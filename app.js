@@ -34,6 +34,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 
 
+
 app.use((req, res, next) => {
     req.query = { ...req.query };
     next();
@@ -49,6 +50,18 @@ app.use("/api/v1", indexRoutes);
 //dummy route
 app.get("/api/v1/test", (req, res) => {
     res.send("Hello world!");
+});
+
+app.get("/api/v1/download-ticket/*", (req, res) => {
+    // Get the full filename after /download-ticket/
+    const filename = req.params[0]; // req.params[0] contains everything after *
+    const file = path.join(__dirname, "uploads/tickets", filename);
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+    res.sendFile(file, (err) => {
+        if (err) res.status(404).json({ success: false, message: "File not found" });
+    });
 });
 
 app.use(notFound);
