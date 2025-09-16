@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const eventManagementController = require("../controllers/commonController/eventManagementController");
+const ticketManagementController = require("../controllers/commonController/ticketManagementController");
 const { protect } = require("../utils/jwt");
 const { validateBody } = require("../middlewares/validate");
 const eventValidation = require("../validations/eventValidation");
@@ -24,6 +25,12 @@ router.put('/change-event-session-status', protect('superadmin', 'event_manager'
 /** Scanned History */
 //
 router.get('/get-gatekeeper-scanned-history', protect('superadmin', 'event_manager'), eventManagementController.getGatekeeperScannedHistory);
+
+/**===================== Ticket Management==================== */
+
+router.get('/get-tickets-by-session-id', protect('superadmin', 'event_manager'), ticketManagementController.getTicketsBySessionId);
+router.get('/get-ticket-by-id', protect('superadmin', 'event_manager'), ticketManagementController.getTicketById);
+// router.put('/change-ticket-status', protect('superadmin', 'event_manager'), eventManagementController.changeTicketStatus);
 
 
 
