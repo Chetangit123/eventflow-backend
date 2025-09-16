@@ -43,8 +43,8 @@ app.use(helmet());
 // Enable CORS
 app.use(cors(
     {
-        origin: "https://backend.taal.life",
-        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        origin: "*",
+        // methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         // allowedHeaders: ["Content-Type", "Authorization"],
         // credentials: true
     }
