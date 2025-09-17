@@ -1,6 +1,6 @@
 module.exports.EmailVerificationTemplate = (userName, verificationLink, options = {}) => {
     const {
-        appName = "TAL.Live",
+        appName = "Taal.life",
         primaryColor = "#ff5722", // TAL.Live ka highlight color
         secondaryColor = "#fff5f0",
         footerText = `© ${new Date().getFullYear()} ${appName}. All rights reserved.`
