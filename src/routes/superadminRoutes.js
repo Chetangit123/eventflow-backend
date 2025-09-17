@@ -12,11 +12,13 @@ const adminRentProductController = require("../controllers/adminController/admin
 const adminPolicyController = require("../controllers/adminController/adminPolicyController");
 const bookingController = require("../controllers/commonController/bookingController");
 const contactUsController = require("../controllers/adminController/contactUsController");
+const ticketManagemenrController = require('../controllers/commonController/ticketManagementController')
 const { protect } = require("../utils/jwt");
 const { validateBody, validateQuery } = require("../middlewares/validate");
 const categoryValidation = require("../validations/categoryValidation");
 const productRentValidators = require("../validations/productRentValidators");
 const { uploadProductImage } = require("../services/multer");
+const { generateTicketFromAdminSideSchema } = require("../validations/eventValidation");
 
 //roles : superadmin, event_manager, gatekeeper
 
@@ -88,5 +90,8 @@ router.get('/ticket-reports', protect('superadmin'), bookingController.getTicket
 
 /**========================Contact Us==================== */
 router.get("/get-all-contacts", protect("superadmin"), contactUsController.getAllContactUs);
+
+/**======================== Ticket Booking ============== */
+router.post('/genrate-ticket-admin', protect('superadmin'), validateBody(generateTicketFromAdminSideSchema), ticketManagemenrController.generateTicketFromAdminSide)
 
 module.exports = router;

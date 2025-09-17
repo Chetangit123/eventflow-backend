@@ -52,16 +52,43 @@ const softDelete = require('../utils/softDelete');
 
 const TicketSubSchema = new Schema({
     ticketId: { type: String, required: true },
-    // Only required when actually generated
-    qrData: { type: String, required: false },
+    qrData: { type: String },
     qrImage: String,
     pdfPath: String,
     attendeeName: String,
-    scanned: { type: Boolean, default: false },
-    scannedAt: Date,
+
+    isVipTicket: { type: Boolean, default: false },
+    validForAllDays: { type: Boolean, default: false },
+
+    // ❌ Old (single scan only)
+    // scanned: { type: Boolean, default: false },
+    // scannedAt: Date,
+
+    // ✅ New (scan history per day)
+    scanHistory: [{
+        scannedAt: { type: Date, default: Date.now },
+        gate: { type: String } // optional → agar multiple gates hai
+    }],
+
     status: { type: String, enum: ['pending', 'generated', 'failed'], default: 'pending' },
     error: String
 }, { _id: false });
+
+
+// const TicketSubSchema = new Schema({
+//     ticketId: { type: String, required: true },
+//     // Only required when actually generated
+//     qrData: { type: String, required: false },
+//     qrImage: String,
+//     pdfPath: String,
+//     attendeeName: String,
+//     scanned: { type: Boolean, default: false },
+//     isVipTicket: { type: Boolean, default: false },
+//     validForAllDays: { type: Boolean, default: false },
+//     scannedAt: Date,
+//     status: { type: String, enum: ['pending', 'generated', 'failed'], default: 'pending' },
+//     error: String
+// }, { _id: false });
 
 const TicketBookingSchema = new Schema({
     user: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -89,7 +116,10 @@ const TicketBookingSchema = new Schema({
 
     tickets: [TicketSubSchema],
     bookedAt: { type: Date, default: Date.now },
-    notes: String
+    notes: String,
+    generatedBy: { type: String, enum: ['user', 'admin', 'event_manager'], default: 'user' },
+    isVipTicket: { type: Boolean, default: false },
+    validForAllDays: { type: Boolean, default: false },
 }, { timestamps: true });
 
 TicketBookingSchema.index({ user: 1, eventSession: 1 });

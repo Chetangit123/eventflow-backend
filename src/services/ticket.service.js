@@ -323,18 +323,32 @@ exports.generateTicketsForBooking = async (bookingId) => {
             };
 
             const qrImage = await QRCode.toDataURL(JSON.stringify(qrPayload));
-
-            const htmlContent = GarbaGalaTemplate({
-                headline: eventData?.title || eventData?.name || "Event",
-                dateText: sessionData.date,
-                timeText: `${sessionData.startTime}-${sessionData.endTime}`,
-                venueText: eventData?.venueName || "",
-                noteText: "Show this ticket at entry",
-                tagline: eventData?.description || "",
-                qrCodeLink: qrImage,
-                attendeeName: attendee.name,
-                ticketId
-            });
+            let htmlContent;
+            if (booking.isVipTicket) {
+                htmlContent = GarbaGalaTemplate({
+                    headline: eventData?.title || eventData?.name || "Event",
+                    dateText: sessionData.date,
+                    timeText: `${sessionData.startTime}-${sessionData.endTime}`,
+                    venueText: eventData?.venueName || "",
+                    noteText: "Show this ticket at entry",
+                    tagline: eventData?.description || "",
+                    qrCodeLink: qrImage,
+                    attendeeName: `${attendee.name} || VIP Ticket`,
+                    ticketId
+                });
+            } else {
+                htmlContent = GarbaGalaTemplate({
+                    headline: eventData?.title || eventData?.name || "Event",
+                    dateText: sessionData.date,
+                    timeText: `${sessionData.startTime}-${sessionData.endTime}`,
+                    venueText: eventData?.venueName || "",
+                    noteText: "Show this ticket at entry",
+                    tagline: eventData?.description || "",
+                    qrCodeLink: qrImage,
+                    attendeeName: attendee.name,
+                    ticketId
+                });
+            }
 
             const fileName = `${ticketId}.${USE_PDF ? "pdf" : "png"}`;
             const absPath = path.join(TICKETS_DIR, fileName);
@@ -356,18 +370,22 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 await page.pdf({ path: absPath, format: "A4", printBackground: true });
                 await browser.close();
             } else {
-                await nodeHtmlToImage({
-                    output: absPath,
-                    html: htmlContent,
-                    type: 'png',
-                    quality: 100,
-                    waitUntil: 'networkidle0',
-                    puppeteerArgs: {
-                        headless: 'new',
-                        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-                        executablePath: ENVIRONMENT.NODE_ENV === 'development' ? '/snap/bin/chromium' : undefined,
-                    },
-                });
+                if (ENVIRONMENT.NODE_ENV === 'development') {
+                    await nodeHtmlToImage({ output: absPath, html: htmlContent });
+                } else {
+                    await nodeHtmlToImage({
+                        output: absPath,
+                        html: htmlContent,
+                        type: 'png',
+                        quality: 100,
+                        waitUntil: 'networkidle0',
+                        puppeteerArgs: {
+                            headless: 'new',
+                            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+                            executablePath: ENVIRONMENT.NODE_ENV === 'development' ? '/snap/bin/chromium' : undefined,
+                        },
+                    });
+                }
             }
 
             tickets.push({
@@ -376,7 +394,9 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 qrData: JSON.stringify(qrPayload),
                 pdfPath: serverPath,
                 attendeeName: attendee.name,
-                status
+                status,
+                isVipTicket: !!booking.isVipTicket,                 // ✅ Added isVip
+                validForAllDays: !!booking.validForAllDays // ✅ Added isValidForAllDays
             });
 
         } catch (err) {
@@ -389,6 +409,89 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 error: err.message
             });
         }
+
+
+        // try {
+        //     const qrPayload = {
+        //         ticketId,
+        //         attendeeName: attendee.name,
+        //         eventName: eventData?.title || eventData?.name || "Event",
+        //         dateTime: `${sessionData.date} | ${sessionData.startTime}-${sessionData.endTime}`
+        //     };
+
+        //     const qrImage = await QRCode.toDataURL(JSON.stringify(qrPayload));
+
+        //     const htmlContent = GarbaGalaTemplate({
+        //         headline: eventData?.title || eventData?.name || "Event",
+        //         dateText: sessionData.date,
+        //         timeText: `${sessionData.startTime}-${sessionData.endTime}`,
+        //         venueText: eventData?.venueName || "",
+        //         noteText: "Show this ticket at entry",
+        //         tagline: eventData?.description || "",
+        //         qrCodeLink: qrImage,
+        //         attendeeName: attendee.name,
+        //         ticketId
+        //     });
+
+        //     const fileName = `${ticketId}.${USE_PDF ? "pdf" : "png"}`;
+        //     const absPath = path.join(TICKETS_DIR, fileName);
+        //     const serverPath = `/uploads/tickets/${fileName}`;
+
+        //     if (USE_PDF) {
+        //         let browser;
+        //         if (ENVIRONMENT.NODE_ENV === "development") {
+        //             browser = await puppeteer.launch({
+        //                 headless: "new",
+        //                 executablePath: "/snap/bin/chromium",
+        //                 args: ["--no-sandbox"]
+        //             });
+        //         } else {
+        //             browser = await puppeteer.launch({ headless: "new" });
+        //         }
+        //         const page = await browser.newPage();
+        //         await page.setContent(htmlContent, { waitUntil: "networkidle0" });
+        //         await page.pdf({ path: absPath, format: "A4", printBackground: true });
+        //         await browser.close();
+        //     } else {
+        //         if (ENVIRONMENT.NODE_ENV === 'development') {
+        //             await nodeHtmlToImage({ output: absPath, html: htmlContent });
+        //         } else {
+        //             await nodeHtmlToImage({
+        //                 output: absPath,
+        //                 html: htmlContent,
+        //                 type: 'png',
+        //                 quality: 100,
+        //                 waitUntil: 'networkidle0',
+        //                 puppeteerArgs: {
+        //                     headless: 'new',
+        //                     args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        //                     executablePath: ENVIRONMENT.NODE_ENV === 'development' ? '/snap/bin/chromium' : undefined,
+        //                 },
+        //             });
+        //         }
+        //     }
+
+        //     tickets.push({
+        //         ticketId,
+        //         qrImage,
+        //         qrData: JSON.stringify(qrPayload),
+        //         pdfPath: serverPath,
+        //         attendeeName: attendee.name,
+        //         status,
+        //         isVip: !!booking.isVipTicket,                 // ✅ use booking's isVipTicket
+        //         isValidForAllDays: !!booking.isValidForAllDays // ✅ use booking's isValidForAllDays
+        //     });
+
+        // } catch (err) {
+        //     status = "failed";
+        //     perTicketErrors.push({ ticketId, attendee: attendee.name, error: err.message });
+        //     tickets.push({
+        //         ticketId,
+        //         attendeeName: attendee.name,
+        //         status,
+        //         error: err.message
+        //     });
+        // }
     }
 
     // Update booking with generated tickets

@@ -78,10 +78,34 @@ const createEventSession = Joi.array().items(
     })
 ).min(1).required();
 
+const generateTicketFromAdminSideSchema = Joi.object({
+    sessionId: Joi.string().required().messages({
+        'string.empty': 'Session ID is required',
+        'any.required': 'Session ID is required'
+    }),
+    eventId: Joi.string().required().messages({
+        'string.empty': 'Event ID is required',
+        'any.required': 'Event ID is required'
+    }),
+    quantity: Joi.number().integer().min(1).required().messages({
+        'number.base': 'Quantity must be a number',
+        'number.integer': 'Quantity must be an integer',
+        'number.min': 'Quantity must be at least 1',
+        'any.required': 'Quantity is required'
+    }),
+    isVipTicket: Joi.boolean().optional().default(false).messages({
+        'boolean.base': 'isVipTicket must be true or false'
+    }),
+    isValidForAllDays: Joi.boolean().optional().default(false).messages({
+        'boolean.base': 'isValidForAllDays must be true or false'
+    })
+});
+
 const eventValidation = {
     createEvent,
     updateEvent,
-    createEventSession
+    createEventSession,
+    generateTicketFromAdminSideSchema
 };
 
 module.exports = eventValidation;
