@@ -304,6 +304,8 @@ exports.bookTickets = catchAsync(async (req, res, next) => {
         razorpayPaymentId: null,
         razorpaySignature: null,
         tickets: [],
+        isVipTicket: false,
+        validForAllDays: false
     });
 
     return successRes(res, 201, true, "Booking created, complete payment to confirm.", { order: razorpayOrder, bookingId: booking._id });
