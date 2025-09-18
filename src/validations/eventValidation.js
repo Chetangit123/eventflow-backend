@@ -98,6 +98,10 @@ const generateTicketFromAdminSideSchema = Joi.object({
     }),
     isValidForAllDays: Joi.boolean().optional().default(false).messages({
         'boolean.base': 'isValidForAllDays must be true or false'
+    }),
+    vipName: Joi.string().optional().messages({
+        'string.empty': 'Vip Name is required',
+        'any.required': 'Vip Name is required'
     })
 });
 
