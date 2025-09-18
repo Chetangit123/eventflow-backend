@@ -31,7 +31,7 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
     }
 
     // 🔹 Limit per booking (Admin override allowed via env)
-    const limitPerBooking = parseInt(process.env.MAX_TICKETS_PER_BOOKING || 50, 10);
+    const limitPerBooking = parseInt(process.env.MAX_TICKETS_PER_BOOKING || 20, 10);
     if (quantity > limitPerBooking) {
         return next(new AppError(`You can book a maximum of ${limitPerBooking} tickets at a time`, 400));
     }
