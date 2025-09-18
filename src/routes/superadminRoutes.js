@@ -93,5 +93,7 @@ router.get("/get-all-contacts", protect("superadmin"), contactUsController.getAl
 
 /**======================== Ticket Booking ============== */
 router.post('/genrate-ticket-admin', protect('superadmin'), validateBody(generateTicketFromAdminSideSchema), ticketManagemenrController.generateTicketFromAdminSide)
+router.get('/get-generated-tickets', protect('superadmin'), ticketManagemenrController.getAllGeneratedByTicketId)
+
 
 module.exports = router;
