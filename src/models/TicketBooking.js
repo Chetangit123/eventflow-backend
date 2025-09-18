@@ -72,7 +72,7 @@ const TicketSubSchema = new Schema({
 
     status: { type: String, enum: ['pending', 'generated', 'failed'], default: 'pending' },
     error: String
-}, { _id: false });
+}, { _id: false , timestamps: true});
 
 
 // const TicketSubSchema = new Schema({

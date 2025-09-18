@@ -171,6 +171,7 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
     let tickets = [];
     bookings.forEach((b) => {
         b.tickets.forEach((t) => {
+            console.log(t.createdAt, "createdAt");
             // Session case
             if (sessionId) {
                 if (!t.isVipTicket && !t.validForAllDays) {
@@ -178,6 +179,7 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
                         bookingId: b._id,
                         event: b.event,
                         session: b.eventSession,
+                        createdAt: t.createdAt,
                         ...t.toObject(),
                     });
                 }
