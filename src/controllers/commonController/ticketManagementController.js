@@ -16,7 +16,8 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
         eventId,
         quantity,
         isVipTicket = false,
-        isValidForAllDays = false
+        isValidForAllDays = false,
+        vipName
     } = req.body;
 
     // 🔹 Validate IDs
@@ -63,7 +64,7 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
     console.log("finalIsValidForAllDays", finalIsValidForAllDays)
     // 🔹 Attendee details (condition based)
     const attendeeName = isVipTicket
-        ? "VIP Ticket"
+        ? `${vipName}`
         : isValidForAllDays
             ? "Season Pass"
             : "Physical Ticket";
