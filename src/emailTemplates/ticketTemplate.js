@@ -295,80 +295,290 @@
 
 
 // garba-gala-template.js
-module.exports.GarbaGalaTemplate = (data = {}) => {
-    const {
-        qrCode = "", // QR code image URL
-        passDate = "23 Sept – 01 Oct", // Date range for pass
-        passType = "Season Pass", // Pass type (Season Pass / Day Pass / Couple Pass)
-        passDescription = "This is a Stag Pass valid for 9 days. We are truly grateful to you for choosing Taal 4.0 to celebrate the joy of Navaratri with us."
-    } = data;
+// module.exports.GarbaGalaTemplate = (data = {}) => {
+//     const {
+//         qrCode = "", // QR code image URL
+//         passDate = "23 Sept – 01 Oct", // Date range for pass
+//         passType = "Season Pass", // Pass type (Season Pass / Day Pass / Couple Pass)
+//         passDescription = "This is a Stag Pass valid for 9 days. We are truly grateful to you for choosing Taal 4.0 to celebrate the joy of Navaratri with us."
+//     } = data;
 
+//     return `
+//   <!DOCTYPE html>
+//   <html lang="en">
+  
+//   <head>
+//       <meta charset="UTF-8" />
+//       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+//       <title>Taal.life – Live Taal</title>
+//       <script src="https://cdn.tailwindcss.com"></script>
+//   </head>
+  
+//   <body class="bg-black flex flex-col items-center min-h-screen">
+//       <!-- Top image -->
+//       <img src="https://backend.taal.life/uploads/productImages/1758204448383-136473890.png" alt="Upper Banner" class="w-full max-w-screen-md object-contain" />
+  
+//       <!-- Bottom image with overlay -->
+//       <div class="relative w-full max-w-screen-md">
+//           <!-- Background image -->
+//           <img src="https://backend.taal.life/uploads/productImages/1758209213244-895452281.png" alt="Bottom Banner" class="w-full object-contain" />
+  
+//           <!-- Ticket content overlay -->
+//           <div class="absolute inset-0 flex flex-col justify-between text-white px-6 sm:px-10 py-8">
+  
+//               <!-- Centered Title -->
+//               <h2 class="whitespace-nowrap text-5xl sm:text-6xl font-extrabold uppercase tracking-wide text-center mb-6">
+//                   ${passType}
+//               </h2>
+  
+//               <!-- Middle row: Details (left) + QR (right) -->
+//               <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-8 space-y-8">
+//                   <!-- Left side: Event Details -->
+//                   <section class="max-w-md leading-relaxed gap-2.5">
+//                       <p class="text-xl font-semibold uppercase">Parmeshwari Garden</p>
+//                       <p class="uppercase text-sm text-gray-300">Indore Road, Ujjain</p>
+//                       <p class="uppercase text-sm text-gray-300">(M.P.), 456010</p>
+  
+//                       <p class="text-2xl mt-4 uppercase">${passDate}</p>
+//                       <p class="uppercase text-sm text-gray-300">Starting Time: 07:00 PM</p>
+  
+//                       <p class="mt-4 text-sm uppercase text-gray-300">
+//                           ${passDescription}
+//                       </p>
+//                   </section>
+  
+//                   <!-- Right side: QR Code -->
+//                  <div class="flex flex-col items-center justify-center shrink-0 bg-white rounded-2xl p-4">
+//   <img src="${qrCode}" alt="QR Code" 
+//        class="w-[300px] h-[300px] object-contain rounded-md shadow-md" />
+//   <p class="mt-3 text-sm text-gray-800">Scan for Entry</p>
+// </div>
+
+//               </div>
+  
+//               <!-- Full-width bottom disclaimer -->
+//               <section class="w-full text-sm font-bold uppercase leading-relaxed text-gray-300 mt-8 pt-4">
+//                   <p>
+//                       Only passes purchased from our official website or authorised physical outlets will be considered
+//                       valid.
+//                       Any passes obtained from other sources will not be accepted.
+//                   </p>
+//               </section>
+//           </div>
+//       </div>
+//   </body>
+  
+//   </html>
+//   `;
+// };
+
+
+
+// module.exports.GarbaGalaTemplate = ({ 
+//     name, 
+//     date, 
+//     ticketId, 
+//     qrData 
+//   }) => {
+//     return `
+//   <!DOCTYPE html>
+//   <html lang="en">
+//   <head>
+//     <meta charset="UTF-8">
+//     <title>Taal Garba Ticket</title>
+//     <style>
+//       body {
+//         margin: 0;
+//         padding: 0;
+//         background: #000;
+//         display: flex;
+//         justify-content: center;
+//         align-items: center;
+//       }
+  
+//       .ticket {
+//         position: relative;
+//         width: 750px;
+//         height: 1191px;
+//         background: url("https://backend.taal.life/uploads/eventBanners/1758228064624-321535410.png") no-repeat center center;
+//         background-size: cover;
+//         font-family: Arial, sans-serif;
+//         color: #fff;
+//       }
+  
+//       /* Name */
+//       .name {
+//         position: absolute;
+//         top: 820px;
+//         left: 32px;
+//         font-size: 22px;
+//         font-weight: bold;
+//       }
+  
+//       /* Date */
+//       .date {
+//         position: absolute;
+//         top: 920px;
+//         left: 32px;
+//         font-size: 20px;
+//         font-weight: bold;
+//       }
+  
+//       /* QR Code */
+//       .qr {
+//         position: absolute;
+//         top: 860px;
+//         right: 60px;
+//         background: #fff;
+//         display: flex;
+//         justify-content: center;
+//         align-items: center;
+//       }
+  
+//       .qr img {
+//         width: 200px;
+//         height: 200px;
+//       }
+  
+//       /* Ticket ID */
+//       .ticket-id {
+//         position: absolute;
+//         top: 1070px;
+//         right: 60px;
+//         font-size: 20px;
+//         color: black;
+//       }
+//     </style>
+//   </head>
+//   <body>
+//     <div class="ticket">
+//       <div class="name">${name}</div>
+//       <div class="date">${date}</div>
+//       <div class="qr">
+//         <img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(qrData)}" alt="QR Code">
+//       </div>
+//       <div class="ticket-id">${ticketId}</div>
+//     </div>
+//   </body>
+//   </html>`;
+//   };
+  
+
+module.exports.GarbaGalaTemplate = ({ name, date, ticketId, qrCode }) => {
     return `
   <!DOCTYPE html>
   <html lang="en">
-  
   <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>Taal.life – Live Taal</title>
-      <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Event Pass</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        margin: auto;
+        font-family: 'Montserrat', sans-serif;
+        background-color: #000;
+      }
+    </style>
   </head>
+  <body>
+    <div class="relative inline-block">
+      <!-- Ticket image -->
+      <img
+        src="https://backend.taal.life/uploads/eventBanners/1758231474727-308762227.png"
+        alt="Event Pass"
+        class="w-full h-auto object-fill block"
+      />
   
-  <body class="bg-black flex flex-col items-center min-h-screen">
-      <!-- Top image -->
-      <img src="https://backend.taal.life/uploads/productImages/1758204448383-136473890.png" alt="Upper Banner" class="w-full max-w-screen-md object-contain" />
-  
-      <!-- Bottom image with overlay -->
-      <div class="relative w-full max-w-screen-md">
-          <!-- Background image -->
-          <img src="https://backend.taal.life/uploads/productImages/1758209213244-895452281.png" alt="Bottom Banner" class="w-full object-contain" />
-  
-          <!-- Ticket content overlay -->
-          <div class="absolute inset-0 flex flex-col justify-between text-white px-6 sm:px-10 py-8">
-  
-              <!-- Centered Title -->
-              <h2 class="whitespace-nowrap text-5xl sm:text-6xl font-extrabold uppercase tracking-wide text-center mb-6">
-                  ${passType}
-              </h2>
-  
-              <!-- Middle row: Details (left) + QR (right) -->
-              <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-8 space-y-8">
-                  <!-- Left side: Event Details -->
-                  <section class="max-w-md leading-relaxed gap-2.5">
-                      <p class="text-xl font-semibold uppercase">Parmeshwari Garden</p>
-                      <p class="uppercase text-sm text-gray-300">Indore Road, Ujjain</p>
-                      <p class="uppercase text-sm text-gray-300">(M.P.), 456010</p>
-  
-                      <p class="text-2xl mt-4 uppercase">${passDate}</p>
-                      <p class="uppercase text-sm text-gray-300">Starting Time: 07:00 PM</p>
-  
-                      <p class="mt-4 text-sm uppercase text-gray-300">
-                          ${passDescription}
-                      </p>
-                  </section>
-  
-                  <!-- Right side: QR Code -->
-                 <div class="flex flex-col items-center justify-center shrink-0 bg-white rounded-2xl p-4">
-  <img src="${qrCode}" alt="QR Code" 
-       class="w-[300px] h-[300px] object-contain rounded-md shadow-md" />
-  <p class="mt-3 text-sm text-gray-800">Scan for Entry</p>
-</div>
-
-              </div>
-  
-              <!-- Full-width bottom disclaimer -->
-              <section class="w-full text-sm font-bold uppercase leading-relaxed text-gray-300 mt-8 pt-4">
-                  <p>
-                      Only passes purchased from our official website or authorised physical outlets will be considered
-                      valid.
-                      Any passes obtained from other sources will not be accepted.
-                  </p>
-              </section>
-          </div>
+      <!-- Name -->
+      <div class="absolute top-[69%] left-9 flex flex-col space-y-2 text-white">
+        <span class="text-3xl font-semibold uppercase">${name}</span>
       </div>
-  </body>
   
-  </html>
-  `;
-};
+      <!-- Date -->
+      <div class="absolute top-[77%] left-9 flex flex-col space-y-2 text-white">
+        <span class="text-3xl font-semibold uppercase">${date}</span>
+      </div>
+  
+      <!-- QR Code -->
+      <div class="absolute top-[70%] right-6 flex items-center justify-center">
+        <img src="${qrCode}" alt="QR Code" class="w-72 h-72 object-contain bg-white" />
+      </div>
+  
+      <!-- Ticket ID -->
+      <div class="absolute top-[95%] right-14 flex flex-col space-y-2 text-white">
+        <span class="text-2xl font-semibold">${ticketId}</span>
+      </div>
+    </div>
+  </body>
+  </html>`;
+  };
 
+
+
+
+// module.exports.GarbaGalaTemplate = ({ name, date, ticketId, qrCode }) => {
+//     return `
+//   <!DOCTYPE html>
+//   <html lang="en" class="h-full w-full m-0 p-0">  <!-- Added: Full height/width, no margin/padding on html -->
+//   <head>
+//     <meta charset="UTF-8" />
+//     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+//     <title>Event Pass</title>
+//     <script src="https://cdn.tailwindcss.com"></script>
+//     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+//     <style>
+//       body {
+//         margin: 0;  /* Changed: Explicitly 0 margin */
+//         padding: 0;  /* Added: No padding */
+//         font-family: 'Montserrat', sans-serif;
+//         background-color: #000;
+//         height: 100vh;  /* Added: Full viewport height */
+//         width: 100vw;  /* Added: Full viewport width */
+//         overflow: hidden;  /* Added: No scrollbars or extra space */
+//       }
+//       html {
+//         height: 100%;  /* Added: Full height on html too */
+//         width: 100%;   /* Added: Full width */
+//         margin: 0;
+//         padding: 0;
+//       }
+//     </style>
+//   </head>
+//   <body class="m-0 p-0">  <!-- Added: Tailwind classes for no margin/padding -->
+//     <div class="relative inline-block w-full h-full">  <!-- Changed: Added w-full h-full for full container -->
+//       <!-- Ticket image -->
+//       <img
+//         src="https://backend.taal.life/uploads/eventBanners/1758231474727-308762227.png"
+//         alt="Event Pass"
+//         class="w-full h-full object-cover block"  <!-- Changed: h-auto to h-full, object-fill to object-cover -->
+//       />
+  
+//       <!-- Name -->
+//       <div class="absolute top-[69%] left-9 flex flex-col space-y-2 text-white">
+//         <span class="text-3xl font-semibold uppercase">${name}</span>
+//       </div>
+  
+//       <!-- Date -->
+//       <div class="absolute top-[77%] left-9 flex flex-col space-y-2 text-white">
+//         <span class="text-3xl font-semibold uppercase">${date}</span>
+//       </div>
+  
+//       <!-- QR Code -->
+//       <div class="absolute top-[70%] right-6 flex items-center justify-center">
+//         <img src="${qrCode}" alt="QR Code" class="w-72 h-72 object-contain bg-white" />
+//       </div>
+  
+//       <!-- Ticket ID -->
+//       <div class="absolute top-[95%] right-14 flex flex-col space-y-2 text-white">
+//         <span class="text-2xl font-semibold">${ticketId}</span>
+//       </div>
+//     </div>
+//   </body>
+//   </html>`;
+//   };
+
+
+  
+  

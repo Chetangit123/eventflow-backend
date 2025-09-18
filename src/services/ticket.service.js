@@ -367,9 +367,11 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 console.log("onlyDate", onlyDate);
                 htmlContent = GarbaGalaTemplate({
                     qrCode: qrImage,
-                    passDate: onlyDate,
-                    passType: "STAG PASS",
-                    passDescription: "This is a Couple Pass valid for 1 day only for particular date. Thank you for joining Taal 4.0!",
+                    date: onlyDate,
+                    name: attendee.name,
+                    ticketId: ticketId,
+                    // passType: "STAG PASS",
+                    // passDescription: "This is a Couple Pass valid for 1 day only for particular date. Thank you for joining Taal 4.0!",
                 });
                 console.log()
             }
