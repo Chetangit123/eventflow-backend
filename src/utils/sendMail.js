@@ -18,7 +18,7 @@ async function sendMail({ to, subject, text, template, attachments }) {
         const htmlContent = template;
 
         const mailOptions = {
-            from: `"Tal Events" <${ENVIRONMENT.SMTP_USER || "taaleventslife@gmail.com"}>`,
+            from: `"Taal Events" <${ENVIRONMENT.SMTP_USER || "taaleventslife@gmail.com"}>`,
             to,
             subject,
             text,

@@ -69,13 +69,12 @@ module.exports.thanksMailToUser = ({ name, eventName, eventDate, eventTime, venu
 
             <p>Event Details:</p>
             <div class="ticket-details">
-                <p><strong>Date:</strong> ${eventDate}</p>
-                <p><strong>Time:</strong> ${eventTime}</p>
+                <p><strong>Date:</strong> ${eventDate.toString().split("T")[0]}</p>
+                <p><strong>Time:</strong> 7:00 PM Onwards</p>
                 <p><strong>Venue:</strong> ${venue}</p>
             </div>
 
             <p>Keep these ticket IDs handy to ensure smooth entry at the event.</p>
-            <a class="btn" href="https://your-domain.com/my-tickets" target="_blank">View My Tickets</a>
 
             <p class="footer">
                 If you have any questions, feel free to contact our support team.

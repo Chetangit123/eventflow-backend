@@ -323,7 +323,18 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 dateTime: `${sessionData.date} | ${sessionData.startTime}-${sessionData.endTime}`
             };
 
-            const qrImage = await QRCode.toDataURL(JSON.stringify(qrPayload));
+            // const qrImage = await QRCode.toDataURL(JSON.stringify(qrPayload));
+
+            const qrImage = await QRCode.toDataURL(JSON.stringify(qrPayload), {
+                errorCorrectionLevel: "H",  // better scannability
+                margin: 1,                  // reduce border if needed
+                scale: 60,                  // increase resolution (default is 4)
+                width: 300,                 // final image width in pixels
+                color: {
+                    dark: "#000000",          // QR color
+                    light: "#ffffff"          // background
+                }
+            });
             let htmlContent;
             console.log("Befoere vip entrtyyy")
             if (booking.isVipTicket) {

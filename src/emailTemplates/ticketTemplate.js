@@ -296,14 +296,14 @@
 
 // garba-gala-template.js
 module.exports.GarbaGalaTemplate = (data = {}) => {
-  const {
-    qrCode = "", // QR code image URL
-    passDate = "23 Sept – 01 Oct", // Date range for pass
-    passType = "Season Pass", // Pass type (Season Pass / Day Pass / Couple Pass)
-    passDescription = "This is a Stag Pass valid for 9 days. We are truly grateful to you for choosing Taal 4.0 to celebrate the joy of Navaratri with us."
-  } = data;
+    const {
+        qrCode = "", // QR code image URL
+        passDate = "23 Sept – 01 Oct", // Date range for pass
+        passType = "Season Pass", // Pass type (Season Pass / Day Pass / Couple Pass)
+        passDescription = "This is a Stag Pass valid for 9 days. We are truly grateful to you for choosing Taal 4.0 to celebrate the joy of Navaratri with us."
+    } = data;
 
-  return `
+    return `
   <!DOCTYPE html>
   <html lang="en">
   
@@ -348,10 +348,12 @@ module.exports.GarbaGalaTemplate = (data = {}) => {
                   </section>
   
                   <!-- Right side: QR Code -->
-                  <div class="flex flex-col items-center shrink-0 bg-white rounded-2xl">
-                      <img src="${qrCode}" alt="QR Code" class="w-32 h-32 object-contain rounded-md shadow-md" />
-                      <p class="mt-3 text-sm text-gray-200">Scan for Entry</p>
-                  </div>
+                 <div class="flex flex-col items-center justify-center shrink-0 bg-white rounded-2xl p-4">
+  <img src="${qrCode}" alt="QR Code" 
+       class="w-[300px] h-[300px] object-contain rounded-md shadow-md" />
+  <p class="mt-3 text-sm text-gray-800">Scan for Entry</p>
+</div>
+
               </div>
   
               <!-- Full-width bottom disclaimer -->
