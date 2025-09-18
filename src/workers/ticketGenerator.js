@@ -80,7 +80,7 @@ const ADMIN_EMAIL = ENVIRONMENT.ADMIN_EMAIL || "superadmin@yopmail.com";
 // Optional: consider bookings stuck in processing > 15 minutes as retryable again
 const PROCESSING_STALE_MINUTES = 15;
 
-cron.schedule("*/1 * * * * *", async () => {
+cron.schedule("*/20 * * * * *", async () => {
   console.log("🎯 Ticket Worker running...");
 
   try {
