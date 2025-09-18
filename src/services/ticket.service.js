@@ -304,7 +304,7 @@ exports.generateTicketsForBooking = async (bookingId) => {
 
     // Get base attendee or fallback
     const baseAttendee = booking.attendeeDetails[0] || { name: "Guest" };
-
+    console.log("baseAttendee", baseAttendee)
     // Generate tickets equal to quantity
     for (let i = 0; i < booking.quantity; i++) {
         const ticketId = await generateTicketId("TAAL");
@@ -313,7 +313,7 @@ exports.generateTicketsForBooking = async (bookingId) => {
         const attendee = {
             name: `${baseAttendee.name} ${i + 1}`
         };
-
+        console.log("attendee", attendee)
         try {
             const qrPayload = {
                 ticketId,
@@ -324,6 +324,7 @@ exports.generateTicketsForBooking = async (bookingId) => {
 
             const qrImage = await QRCode.toDataURL(JSON.stringify(qrPayload));
             let htmlContent;
+            console.log("Befoere vip entrtyyy")
             if (booking.isVipTicket) {
                 htmlContent = GarbaGalaTemplate({
                     headline: eventData?.title || eventData?.name || "Event",
@@ -337,17 +338,25 @@ exports.generateTicketsForBooking = async (bookingId) => {
                     ticketId
                 });
             } else {
+                // htmlContent = GarbaGalaTemplate({
+                //     headline: eventData?.title || eventData?.name || "Event",
+                //     dateText: sessionData.date,
+                //     timeText: `${sessionData.startTime}-${sessionData.endTime}`,
+                //     venueText: eventData?.venueName || "",
+                //     noteText: "Show this ticket at entry",
+                //     tagline: eventData?.description || "",
+                //     qrCodeLink: qrImage,
+                //     attendeeName: attendee.name,
+                //     ticketId
+                // });
+                console.log("insidessss entry")
                 htmlContent = GarbaGalaTemplate({
-                    headline: eventData?.title || eventData?.name || "Event",
-                    dateText: sessionData.date,
-                    timeText: `${sessionData.startTime}-${sessionData.endTime}`,
-                    venueText: eventData?.venueName || "",
-                    noteText: "Show this ticket at entry",
-                    tagline: eventData?.description || "",
-                    qrCodeLink: qrImage,
-                    attendeeName: attendee.name,
-                    ticketId
+                    qrCode: qrImage,
+                    passDate: sessionData.date,
+                    passType: "STAG PASS",
+                    passDescription: "This is a Couple Pass valid for 1 day only for particular date. Thank you for joining Taal 4.0!",
                 });
+                console.log()
             }
 
             const fileName = `${ticketId}.${USE_PDF ? "pdf" : "png"}`;

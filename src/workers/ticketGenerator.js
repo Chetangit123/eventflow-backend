@@ -111,8 +111,7 @@ cron.schedule("*/30 * * * * *", async () => {
         const result = await generateTicketsForBooking(booking._id);
 
         console.log(
-          `✅ Tickets generated for booking ${booking._id} (attempt ${
-            booking.retryCount || 0
+          `✅ Tickets generated for booking ${booking._id} (attempt ${booking.retryCount || 0
           })`
         );
 
@@ -148,21 +147,20 @@ cron.schedule("*/30 * * * * *", async () => {
                 User: ${booking.user}
                 Event: ${booking.event}
                 Session: ${booking.eventSession}
-                Error(s): ${
-                  (result.errors || [])
+                Error(s): ${(result.errors || [])
                     .map((e) => `${e.ticketId}: ${e.error}`)
                     .join(", ") || "Unknown"
-                }
-                `,
-                    });
-                 console.log(`🚨 Admin notified about booking ${booking._id} failure`);
-                 } catch (mailErr) {
-                     console.error(
-                     `❌ Failed to notify admin for ${booking._id}:`,
-                    mailErr.message);
                   }
-             }
-        } 
+                `,
+              });
+              console.log(`🚨 Admin notified about booking ${booking._id} failure`);
+            } catch (mailErr) {
+              console.error(
+                `❌ Failed to notify admin for ${booking._id}:`,
+                mailErr.message);
+            }
+          }
+        }
         else {
           // Success → clear error fields
           await TicketBooking.updateOne(
