@@ -124,6 +124,7 @@ console.log(ENVIRONMENT.NODE_ENV, " in ticket service")
 const USE_PDF = false;
 const TICKETS_DIR = path.resolve(process.cwd(), "uploads", "tickets");
 const puppeteer = require("puppeteer");
+const moment = require("moment");
 
 async function generateTicketId(eventCode) {
     const year = new Date().getFullYear();
@@ -350,9 +351,12 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 //     ticketId
                 // });
                 console.log("insidessss entry")
+                const dateObj = new Date(sessionData.date);
+                const onlyDate = dateObj.toISOString().split("T")[0];
+                console.log("onlyDate", onlyDate);
                 htmlContent = GarbaGalaTemplate({
                     qrCode: qrImage,
-                    passDate: sessionData.date,
+                    passDate: onlyDate,
                     passType: "STAG PASS",
                     passDescription: "This is a Couple Pass valid for 1 day only for particular date. Thank you for joining Taal 4.0!",
                 });
