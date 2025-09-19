@@ -131,7 +131,7 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
         return next(new AppError('Invalid status value', 400));
     }
 
-    let filter = { event: eventId };
+    let filter = { event: eventId, ticketStatus };
 
     // ✅ Case 1: Session based tickets (non-VIP + non-allDays)
     if (sessionId) {
