@@ -131,7 +131,6 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
         return next(new AppError('Invalid status value', 400));
     }
 
-
     let filter = { event: eventId };
 
     // ✅ Case 1: Session based tickets (non-VIP + non-allDays)
@@ -139,7 +138,10 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
         filter = {
             ...filter,
             eventSession: sessionId,
-            generatedBy: "admin",
+            $or: [
+                { generatedBy: "admin" },
+                { generatedBy: { $exists: false } } // purane docs bhi include
+            ],
             tickets: {
                 $elemMatch: {
                     isVipTicket: false,
@@ -153,6 +155,10 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
     if (typeof isVip !== "undefined") {
         filter = {
             ...filter,
+            $or: [
+                { generatedBy: "admin" },
+                { generatedBy: { $exists: false } }
+            ],
             tickets: {
                 $elemMatch: {
                     isVipTicket: isVip === "true",
@@ -165,6 +171,10 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
     if (typeof validForAllDays !== "undefined") {
         filter = {
             ...filter,
+            $or: [
+                { generatedBy: "admin" },
+                { generatedBy: { $exists: false } }
+            ],
             tickets: {
                 $elemMatch: {
                     validForAllDays: validForAllDays === "true",
@@ -176,7 +186,8 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
     // ✅ Fetch bookings
     const bookings = await TicketBooking.find(filter)
         .populate("event")
-        .populate("eventSession").sort({ createdAt: -1 });
+        .populate("eventSession")
+        .sort({ createdAt: -1 });
 
     // ✅ Flatten tickets
     let tickets = [];
@@ -238,7 +249,14 @@ const getTicketsBySessionId = catchAsync(async (req, res, next) => {
     // Count total tickets
     const countBuilder = new QueryBuilder(TicketBooking);
     const totalTickets = await countBuilder
-        .filter({ eventSession: new mongoose.Types.ObjectId(sessionId), ticketStatus, generatedBy: "user" })
+        .filter({
+            eventSession: new mongoose.Types.ObjectId(sessionId),
+            ticketStatus,
+            $or: [
+                { generatedBy: "user" },
+                { generatedBy: { $exists: false } } // agar field hi nahi hai
+            ]
+        })
         .count();
 
     // Fetch paginated tickets
@@ -247,8 +265,11 @@ const getTicketsBySessionId = catchAsync(async (req, res, next) => {
         {
             $match: {
                 eventSession: new mongoose.Types.ObjectId(sessionId),
-                generatedBy: "user", // yaha condition add
                 ticketStatus,
+                $or: [
+                    { generatedBy: "user" },
+                    { generatedBy: { $exists: false } }
+                ]
             },
         },
         {
@@ -259,7 +280,7 @@ const getTicketsBySessionId = catchAsync(async (req, res, next) => {
                 as: "eventSessionDetails",
             },
         },
-        { $unwind: "$eventSessionDetails" }, // Single object instead of array
+        { $unwind: "$eventSessionDetails" },
         {
             $lookup: {
                 from: "events",
@@ -277,11 +298,10 @@ const getTicketsBySessionId = catchAsync(async (req, res, next) => {
             },
         },
         { $unwind: "$userDetails" },
-        { $sort: { createdAt: -1 } }, // sort by latest createdAt
+        { $sort: { createdAt: -1 } },
         { $skip: (parseInt(page, 10) - 1) * parseInt(limit, 10) },
         { $limit: parseInt(limit, 10) },
     ]).exec();
-
 
     return successRes(res, 200, true, "Tickets fetched successfully", {
         total: totalTickets,
@@ -290,6 +310,7 @@ const getTicketsBySessionId = catchAsync(async (req, res, next) => {
         data: tickets
     });
 });
+
 
 const getTicketById = catchAsync(async (req, res, next) => {
     const ticketId = req.query.ticketId;
