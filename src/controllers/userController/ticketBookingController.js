@@ -229,6 +229,7 @@ const razorpay = new Razorpay({
 });
 
 // src/controllers/userController/ticketBookingController.js
+/**
 exports.bookTickets = catchAsync(async (req, res, next) => {
     const { eventSession, event, quantity, attendeeDetails } = req.body;
     const userId = req.user._id;
@@ -310,6 +311,104 @@ exports.bookTickets = catchAsync(async (req, res, next) => {
 
     return successRes(res, 201, true, "Booking created, complete payment to confirm.", { order: razorpayOrder, bookingId: booking._id });
 });
+*/
+
+exports.bookTickets = catchAsync(async (req, res, next) => {
+    const { eventSession, event, quantity, attendeeDetails } = req.body;
+    const userId = req.user._id;
+
+    let qty = parseInt(quantity);
+    if (isNaN(qty) || qty <= 0) {
+        return next(new AppError("Quantity must be a positive integer", 400));
+    }
+
+    let limitPerBooking = ENVIRONMENT.MAX_TICKETS_PER_BOOKING || 5;
+    if (qty > limitPerBooking) {
+        return next(new AppError(`You can book a maximum of ${limitPerBooking} tickets at a time`, 400));
+    }
+
+    // ✅ Validate all fields
+    if (!eventSession || !event || !quantity || !attendeeDetails?.length) {
+        return next(new AppError("All fields are required", 400));
+    }
+
+    // ✅ Validate user existence
+    const findUser = await User.findOne({ _id: userId, isDeleted: false });
+    if (!findUser) return next(new AppError("User not found", 404));
+
+    // ✅ Validate event existence
+    const eventData = await Event.findOne({ _id: event, isDeleted: false });
+    if (!eventData) return next(new AppError("Event not found", 404));
+
+    // ✅ Validate session existence
+    const sessionData = await EventSession.findOne({ _id: eventSession, event, isDeleted: false });
+    if (!sessionData) return next(new AppError("Event session not found", 404));
+
+    const now = new Date();
+    if (sessionData.date < now) {
+        return next(new AppError("This event session has already expired", 400));
+    }
+
+    // ✅ Check if there are enough tickets available
+    if (sessionData.remainingCapacity < quantity) {
+        return next(new AppError("Not enough tickets available", 400));
+    }
+
+    const pricePerTicket = sessionData.pricePerTicket || eventData.price || 0;
+
+    // 👉 subtotal (only tickets)
+    const ticketSubtotal = pricePerTicket * quantity;
+
+    // 👉 5% platform fee
+    const platformFee = Math.round(ticketSubtotal * 0.05);
+
+    // 👉 final amount
+    const grandTotal = ticketSubtotal + platformFee;
+
+    // ✅ Razorpay order creation
+    const razorpayOrder = await razorpay.orders.create({
+        amount: grandTotal * 100, // in paise
+        currency: "INR",
+        receipt: `rcpt_${Date.now()}`,
+        notes: {
+            userId: userId.toString(),
+            eventId: event.toString(),
+        },
+    });
+
+    // ✅ Booking creation (pending state)
+    const booking = await TicketBooking.create({
+        user: userId,
+        eventSession,
+        event,
+        quantity,
+        attendeeDetails,
+        pricePerTicket,
+        ticketSubtotal,
+        platformFee,
+        totalAmount: grandTotal,
+        paymentMethod: "razorpay",
+        paymentStatus: "pending",
+        ticketStatus: "pending",
+        razorpayOrderId: razorpayOrder.id,
+        razorpayPaymentId: null,
+        razorpaySignature: null,
+        tickets: [],
+        isVipTicket: false,
+        validForAllDays: false
+    });
+
+    return successRes(res, 201, true, "Booking created, complete payment to confirm.", {
+        order: razorpayOrder,
+        bookingId: booking._id,
+        breakdown: {
+            ticketSubtotal,
+            platformFee,
+            totalPayable: grandTotal
+        }
+    });
+});
+
 
 exports.verifyTicketPayment = catchAsync(async (req, res, next) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body;

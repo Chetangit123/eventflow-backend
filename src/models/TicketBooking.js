@@ -56,7 +56,6 @@ const TicketSubSchema = new Schema({
     qrImage: String,
     pdfPath: String,
     attendeeName: String,
-
     isVipTicket: { type: Boolean, default: false },
     validForAllDays: { type: Boolean, default: false },
 
@@ -72,7 +71,7 @@ const TicketSubSchema = new Schema({
 
     status: { type: String, enum: ['pending', 'generated', 'failed'], default: 'pending' },
     error: String
-}, { _id: false , timestamps: true});
+}, { _id: false, timestamps: true });
 
 
 // const TicketSubSchema = new Schema({
@@ -98,6 +97,7 @@ const TicketBookingSchema = new Schema({
     attendeeDetails: [{ name: String, phone: String }],
     pricePerTicket: Number,
     totalAmount: Number,
+    platformFee: Number,
     currency: { type: String, default: 'INR' },
 
     paymentMethod: { type: String, enum: ['razorpay'], required: true },
