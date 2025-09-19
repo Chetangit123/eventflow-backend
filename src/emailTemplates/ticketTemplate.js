@@ -476,7 +476,6 @@ module.exports.GarbaGalaTemplate = ({ name, date, ticketId, qrCode }) => {
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
       body {
-        margin: auto;
         font-family: 'Montserrat', sans-serif;
         background-color: #000;
       }
@@ -485,19 +484,21 @@ module.exports.GarbaGalaTemplate = ({ name, date, ticketId, qrCode }) => {
   <body>
     <div class="relative inline-block">
       <!-- Ticket image -->
-      <img
-        src="https://backend.taal.life/uploads/eventBanners/1758231474727-308762227.png"
-        alt="Event Pass"
-        class="w-full h-auto object-fill block"
-      />
+      <div class="relative inline-block w-[800px] h-auto">
+  <img
+    src="https://backend.taal.life/uploads/eventBanners/1758231474727-308762227.png"
+    alt="Event Pass"
+    class="w-full h-full object-contain block bg-transparent"
+/>
+</div>
   
       <!-- Name -->
-      <div class="absolute top-[69%] left-9 flex flex-col space-y-2 text-white">
+      <div class="absolute top-[67%] left-9 flex flex-col space-y-2 text-white">
         <span class="text-3xl font-semibold uppercase">${name}</span>
       </div>
   
       <!-- Date -->
-      <div class="absolute top-[77%] left-9 flex flex-col space-y-2 text-white">
+      <div class="absolute top-[76%] left-9 flex flex-col space-y-2 text-white">
         <span class="text-3xl font-semibold uppercase">${date}</span>
       </div>
   
@@ -507,9 +508,9 @@ module.exports.GarbaGalaTemplate = ({ name, date, ticketId, qrCode }) => {
       </div>
   
       <!-- Ticket ID -->
-      <div class="absolute top-[95%] right-14 flex flex-col space-y-2 text-white">
-        <span class="text-2xl font-semibold">${ticketId}</span>
-      </div>
+    <div class="absolute bottom-6 right-14 flex flex-col space-y-2 text-white">
+  <span class="text-2xl font-semibold">${ticketId}</span>
+</div>
     </div>
   </body>
   </html>`;
