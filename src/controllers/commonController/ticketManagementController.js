@@ -130,6 +130,7 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
         filter = {
             ...filter,
             eventSession: sessionId,
+            generatedBy: "admin",
             tickets: {
                 $elemMatch: {
                     isVipTicket: false,
