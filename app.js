@@ -24,7 +24,7 @@ const corsOptions = {
         "https://taal.life",
         "https://www.taal.life",
         "https://admin.taal.life",
-        // "http://localhost:3000"
+        "http://localhost:3000"
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     preflightContinue: false,
@@ -45,7 +45,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// app.use(rateLimit);
+app.use(rateLimit);
 
 // ------------------------
 // ✅ Routes
