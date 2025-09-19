@@ -117,11 +117,20 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
 });
 
 const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
-    const { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10 } = req.query;
+    const { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10, ticketStatus = "confirmed" } = req.query;
 
     if (!eventId) {
         return next(new AppError("eventId is required", 400));
     }
+
+    if (!isValidId(eventId)) return next(new AppError("Invalid event id", 400));
+
+    if (sessionId && !isValidId(sessionId)) return next(new AppError("Invalid session id", 400));
+
+    if (ticketStatus && !['pending', 'confirmed', 'failed'].includes(ticketStatus)) {
+        return next(new AppError('Invalid status value', 400));
+    }
+
 
     let filter = { event: eventId };
 
@@ -216,14 +225,20 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
 });
 
 const getTicketsBySessionId = catchAsync(async (req, res, next) => {
-    const { sessionId, page = 1, limit = 10 } = req.query;
+    let { sessionId, page = 1, limit = 10, ticketStatus } = req.query;
 
     if (!isValidId(sessionId)) return next(new AppError('Invalid session id', 400));
+
+    if (ticketStatus && !['pending', 'confirmed', 'failed'].includes(ticketStatus)) {
+        return next(new AppError('Invalid status value', 400));
+    }
+
+    if (!ticketStatus) ticketStatus = "confirmed";
 
     // Count total tickets
     const countBuilder = new QueryBuilder(TicketBooking);
     const totalTickets = await countBuilder
-        .filter({ eventSession: new mongoose.Types.ObjectId(sessionId) })
+        .filter({ eventSession: new mongoose.Types.ObjectId(sessionId), ticketStatus, generatedBy: "user" })
         .count();
 
     // Fetch paginated tickets
@@ -233,6 +248,24 @@ const getTicketsBySessionId = catchAsync(async (req, res, next) => {
             $match: {
                 eventSession: new mongoose.Types.ObjectId(sessionId),
                 generatedBy: "user", // yaha condition add
+                ticketStatus,
+            },
+        },
+        {
+            $lookup: {
+                from: "eventsessions",
+                localField: "eventSession",
+                foreignField: "_id",
+                as: "eventSessionDetails",
+            },
+        },
+        { $unwind: "$eventSessionDetails" }, // Single object instead of array
+        {
+            $lookup: {
+                from: "events",
+                localField: "eventSessionDetails.event",
+                foreignField: "_id",
+                as: "eventDetails",
             },
         },
         {
