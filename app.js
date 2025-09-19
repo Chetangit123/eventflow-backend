@@ -45,7 +45,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use(rateLimit);
+// app.use(rateLimit);
 
 // ------------------------
 // ✅ Routes
