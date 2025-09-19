@@ -228,26 +228,27 @@ const getTicketsBySessionId = catchAsync(async (req, res, next) => {
 
     // Fetch paginated tickets
     let qb = new QueryBuilder(TicketBooking);
-    const tickets = await qb
-        .aggregate([
-            {
-                $match: {
-                    eventSession: new mongoose.Types.ObjectId(sessionId),
-                },
+    const tickets = await qb.aggregate([
+        {
+            $match: {
+                eventSession: new mongoose.Types.ObjectId(sessionId),
+                generatedBy: "user", // yaha condition add
             },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "user",
-                    foreignField: "_id",
-                    as: "userDetails",
-                },
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "user",
+                foreignField: "_id",
+                as: "userDetails",
             },
-            { $unwind: "$userDetails" },
-            { $skip: (parseInt(page, 10) - 1) * parseInt(limit, 10) },
-            { $limit: parseInt(limit, 10) }
-        ])
-        .exec();
+        },
+        { $unwind: "$userDetails" },
+        { $sort: { createdAt: -1 } }, // sort by latest createdAt
+        { $skip: (parseInt(page, 10) - 1) * parseInt(limit, 10) },
+        { $limit: parseInt(limit, 10) },
+    ]).exec();
+
 
     return successRes(res, 200, true, "Tickets fetched successfully", {
         total: totalTickets,
