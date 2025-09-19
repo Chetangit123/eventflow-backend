@@ -167,14 +167,12 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
     // ✅ Fetch bookings
     const bookings = await TicketBooking.find(filter)
         .populate("event")
-        .populate("eventSession");
+        .populate("eventSession").sort({ createdAt: -1 });
 
     // ✅ Flatten tickets
     let tickets = [];
     bookings.forEach((b) => {
         b.tickets.forEach((t) => {
-            console.log(t.createdAt, "createdAt");
-            // Session case
             if (sessionId) {
                 if (!t.isVipTicket && !t.validForAllDays) {
                     tickets.push({
