@@ -365,7 +365,7 @@ exports.generateTicketsForBooking = async (bookingId) => {
                 const dateObj = new Date(sessionData.date);
                 // const onlyDate = dateObj.toISOString().split("T")[0];
                 const options = { day: '2-digit', month: 'long', year: 'numeric' };
-                const formattedDate = dateObj.toLocaleDateString('en-GB', options);
+                const formattedDate = dateObj?.toLocaleDateString('en-GB', options);
                 onlyDate = formattedDate
                 console.log("onlyDate", onlyDate);
                 htmlContent = GarbaGalaTemplate({
