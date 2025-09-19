@@ -20,7 +20,12 @@ const app = express();
 
 app.use(helmet());
 const corsOptions = {
-    origin: "*", // allow all domains
+    origin: [
+        "https://taal.life",
+        "https://www.taal.life",
+        "https://admin.taal.life",
+        // "http://localhost:3000"
+    ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     preflightContinue: false,
     optionsSuccessStatus: 204
