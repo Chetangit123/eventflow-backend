@@ -1,5 +1,5 @@
-module.exports.GarbaGalaTemplate = ({ name, date, ticketId, qrCode }) => {
-  return `
+module.exports.seasonTiecketTemplate = ({ name, date, ticketId, qrCode }) => {
+    return `
   <!DOCTYPE html>
   <html lang="en">
   <head>
@@ -20,7 +20,7 @@ module.exports.GarbaGalaTemplate = ({ name, date, ticketId, qrCode }) => {
       <!-- Ticket image -->
       <div class="relative inline-block w-[800px] h-auto">
   <img
-    src="https://backend.taal.life/uploads/eventBanners/1758231474727-308762227.png"
+    src="https://backend.taal.life/uploads/productImages/1758316419547-559714911.png"
     alt="Event Pass"
     class="w-full h-full object-contain block bg-transparent"
 />

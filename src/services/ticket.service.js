@@ -1,114 +1,3 @@
-// // src/services/ticket.service.js
-// const QRCode = require("qrcode");
-// const nodeHtmlToImage = require("node-html-to-image");
-// const path = require("path");
-// const fs = require("fs");
-// const TicketBooking = require("../models/TicketBooking");
-// const { GarbaGalaTemplate } = require("../emailTemplates/ticketTemplate");
-// const sendMail = require("../utils/sendMail");
-// const { thanksMailToUser } = require("../emailTemplates/thanksMailTemplate");
-
-// const USE_PDF = false;
-
-// const { v4: uuidv4 } = require("uuid");
-
-// async function generateTicketId(eventCode) {
-//     const year = new Date().getFullYear();
-//     const uniqueId = uuidv4().split("-")[0]; // sirf chhota part lena ho to
-//     return `${eventCode.toUpperCase()}-${year}-${uniqueId}`;
-// }
-
-// exports.generateTicketsForBooking = async (bookingId) => {
-//     console.log("Generating tickets for booking in service file:", bookingId);
-//     const booking = await TicketBooking.findById(bookingId)
-//         .populate("event")
-//         .populate("eventSession")
-//         .populate("user");
-//     console.log(booking, "booking details")
-//     const findUser = booking?.user;
-
-//     if (!booking) return;
-
-//     const eventData = booking.event;
-//     const sessionData = booking.eventSession;
-//     const ticketDir = path.join(__dirname, "../../Uploads/tickets");
-//     if (!fs.existsSync(ticketDir)) fs.mkdirSync(ticketDir, { recursive: true });
-
-//     const tickets = [];
-//     for (const attendee of booking.attendeeDetails) {
-//         let status = "generated";
-//         const ticketId = await generateTicketId("TAAL");
-
-//         try {
-//             const qrPayload = {
-//                 ticketId,
-//                 attendeeName: attendee.name,
-//                 eventName: eventData.name,
-//                 dateTime: `${sessionData.date} | ${sessionData.startTime}-${sessionData.endTime}`
-//             };
-
-//             const qrImage = await QRCode.toDataURL(JSON.stringify(qrPayload));
-
-//             const htmlContent = GarbaGalaTemplate({
-//                 headline: eventData.title,
-//                 dateText: sessionData.date,
-//                 timeText: `${sessionData.startTime}-${sessionData.endTime}`,
-//                 venueText: eventData.venueName,
-//                 noteText: "Show this ticket at entry",
-//                 tagline: eventData.description,
-//                 qrCodeLink: qrImage,
-//                 attendeeName: attendee.name,
-//                 ticketId
-//             });
-
-//             const fileName = `${ticketId}.${USE_PDF ? "pdf" : "png"}`;
-//             const absPath = path.join(ticketDir, fileName);   // actual path for fs
-//             const serverPath = `/uploads/tickets/${fileName}`; // this goes in DB
-
-//             if (USE_PDF) {
-//                 const puppeteer = require("puppeteer");
-//                 const browser = await puppeteer.launch({ headless: "new" });
-//                 const page = await browser.newPage();
-//                 await page.setContent(htmlContent, { waitUntil: "networkidle0" });
-//                 await page.pdf({ path: absPath, format: "A4", printBackground: true });
-//                 await browser.close();
-//             } else {
-//                 await nodeHtmlToImage({ output: absPath, html: htmlContent });
-//             }
-
-//             tickets.push({ ticketId, qrImage, qrData: JSON.stringify(qrPayload), pdfPath: serverPath, attendeeName: attendee.name, status });
-//         } catch (err) {
-//             console.error("Ticket generation failed:", err);
-//             status = "failed";
-//             tickets.push({ ticketId, attendeeName: attendee.name, status });
-//         }
-//     }
-
-//     booking.tickets = tickets;
-//     booking.ticketStatus = tickets.every(t => t.status === "generated") ? "confirmed" : "failed";
-//     await booking.save();
-
-//     const emailTemplate = thanksMailToUser({
-//         name: findUser.name,
-//         eventName: eventData.title,
-//         eventDate: sessionData.date,
-//         eventTime: sessionData.startTime,
-//         venue: eventData.venueName,
-//         ticketIds: tickets.map(t => t.ticketId)
-//     });
-
-//     await sendMail({
-//         to: findUser.email,
-//         subject: "Your Event Tickets",
-//         text: "Your ticket booking details",
-//         template: emailTemplate,
-//         attachments: tickets.map(t => ({
-//             filename: `${t.ticketId}.${USE_PDF ? "pdf" : "png"}`,
-//             path: path.join(ticketDir, `${t.ticketId}.${USE_PDF ? "pdf" : "png"}`)
-//         }))
-//     });
-// };
-
 // src/services/ticket.service.js
 const QRCode = require("qrcode");
 const nodeHtmlToImage = require("node-html-to-image");
@@ -125,6 +14,8 @@ const USE_PDF = false;
 const TICKETS_DIR = path.resolve(process.cwd(), "uploads", "tickets");
 const puppeteer = require("puppeteer");
 const moment = require("moment");
+const { garbatemplateVip } = require("../emailTemplates/ticketTemplateVip");
+const { seasonTiecketTemplate } = require("../emailTemplates/seasonTicketTemplate");
 
 async function generateTicketId(eventCode) {
     const year = new Date().getFullYear();
@@ -337,46 +228,44 @@ exports.generateTicketsForBooking = async (bookingId) => {
             });
             let htmlContent;
             console.log("Befoere vip entrtyyy")
+            dateString = "23 Sep 2025 - 01 Oct 2025"
             if (booking.isVipTicket) {
-                htmlContent = GarbaGalaTemplate({
-                    headline: eventData?.title || eventData?.name || "Event",
-                    dateText: sessionData.date,
-                    timeText: `${sessionData.startTime}-${sessionData.endTime}`,
-                    venueText: eventData?.venueName || "",
-                    noteText: "Show this ticket at entry",
-                    tagline: eventData?.description || "",
-                    qrCodeLink: qrImage,
-                    attendeeName: `${attendee.name} || VIP Ticket`,
-                    ticketId
-                });
-            } else {
-                // htmlContent = GarbaGalaTemplate({
-                //     headline: eventData?.title || eventData?.name || "Event",
-                //     dateText: sessionData.date,
-                //     timeText: `${sessionData.startTime}-${sessionData.endTime}`,
-                //     venueText: eventData?.venueName || "",
-                //     noteText: "Show this ticket at entry",
-                //     tagline: eventData?.description || "",
-                //     qrCodeLink: qrImage,
-                //     attendeeName: attendee.name,
-                //     ticketId
-                // });
-                console.log("insidessss entry")
-                const dateObj = new Date(sessionData.date);
-                // const onlyDate = dateObj.toISOString().split("T")[0];
-                const options = { day: '2-digit', month: 'long', year: 'numeric' };
-                const formattedDate = dateObj?.toLocaleDateString('en-GB', options);
-                onlyDate = formattedDate
-                console.log("onlyDate", onlyDate);
-                htmlContent = GarbaGalaTemplate({
+                htmlContent = garbatemplateVip({
                     qrCode: qrImage,
-                    date: onlyDate,
+                    date: dateString,
                     name: attendee.name,
                     ticketId: ticketId,
                     // passType: "STAG PASS",
                     // passDescription: "This is a Couple Pass valid for 1 day only for particular date. Thank you for joining Taal 4.0!",
                 });
-                console.log()
+            } else {
+                if (booking.validForAllDays) {
+                    dateString = "23 Sep 2025 - 01 Oct 2025"
+                    htmlContent = seasonTiecketTemplate
+                        ({
+                            qrCode: qrImage,
+                            date: dateString,
+                            name: attendee.name,
+                            ticketId: ticketId,
+                            // passType: "STAG PASS",
+                            // passDescription: "This is a Couple Pass valid for 1 day only for particular date. Thank you for joining Taal 4.0!",
+                        });
+                } else {
+                    const dateObj = new Date(sessionData.date);
+                    const options = { day: '2-digit', month: 'long', year: 'numeric' };
+                    const formattedDate = dateObj?.toLocaleDateString('en-GB', options);
+                    onlyDate = formattedDate
+                    console.log("onlyDate", onlyDate);
+                    htmlContent = GarbaGalaTemplate({
+                        qrCode: qrImage,
+                        date: onlyDate,
+                        name: attendee.name,
+                        ticketId: ticketId,
+                        // passType: "STAG PASS",
+                        // passDescription: "This is a Couple Pass valid for 1 day only for particular date. Thank you for joining Taal 4.0!",
+                    });
+                }
+
             }
 
             const fileName = `${ticketId}.${USE_PDF ? "pdf" : "png"}`;

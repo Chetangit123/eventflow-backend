@@ -97,7 +97,7 @@ cron.schedule("*/20 * * * * *", async () => {
         {
           paymentStatus: "paid",
           $or: [
-            { ticketStatus: { $in: ["pending", "retrying"] } },
+            { ticketStatus: { $in: ["pending", "retrying", "failed"] } },
             { ticketStatus: "processing", processingAt: { $lte: staleCutoff } }, // recover stuck
           ],
         },
