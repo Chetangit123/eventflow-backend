@@ -311,7 +311,7 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
             return successRes(res, 404, false, responseMsg, extraData);
         }
 
-        const now = moment("2025-09-22T16:40:13+05:30").tz("Asia/Kolkata");
+        const now = moment().tz("Asia/Kolkata");
         ticket.scanHistory = ticket.scanHistory || [];
 
         // Event start and end dates in Asia/Kolkata
