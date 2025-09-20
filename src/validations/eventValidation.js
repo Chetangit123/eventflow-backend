@@ -105,11 +105,35 @@ const generateTicketFromAdminSideSchema = Joi.object({
     })
 });
 
+
+const updateEventSession = Joi.object({
+    sessionId: Joi.string().required(),
+    event: Joi.string().optional(),
+    specialNameOfDay: Joi.string().optional(),
+    date: Joi.date().optional(),
+    startTime: Joi.string()
+        .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/) // ✅ HH:mm format
+        .optional(),
+    endTime: Joi.string()
+        .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/) // ✅ HH:mm format
+        .optional(),
+    pricePerTicket: Joi.number().positive().optional(),
+    currency: Joi.string().default("INR").optional(),
+    totalCapacity: Joi.number().positive().optional(),
+    remainingCapacity: Joi.number().positive().optional(),
+    status: Joi.string()
+        .valid("scheduled", "cancelled", "completed")
+        .default("scheduled")
+        .optional(),
+});
+
+
 const eventValidation = {
     createEvent,
     updateEvent,
     createEventSession,
-    generateTicketFromAdminSideSchema
+    generateTicketFromAdminSideSchema,
+    updateEventSession
 };
 
 module.exports = eventValidation;
