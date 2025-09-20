@@ -344,8 +344,13 @@ exports.bookTickets = catchAsync(async (req, res, next) => {
     const sessionData = await EventSession.findOne({ _id: eventSession, event, isDeleted: false });
     if (!sessionData) return next(new AppError("Event session not found", 404));
 
-    const now = new Date();
-    if (sessionData.date < now) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // reset time to midnight
+
+    const sessionDate = new Date(sessionData?.date);
+    sessionDate.setHours(0, 0, 0, 0);
+
+    if (sessionDate < today) {
         return next(new AppError("This event session has already expired", 400));
     }
 

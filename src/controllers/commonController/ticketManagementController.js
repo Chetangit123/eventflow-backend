@@ -49,11 +49,17 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
     const eventData = await Event.findOne({ _id: eventId, isDeleted: false });
     if (!eventData) return next(new AppError("Event not found", 404));
 
-    // 🔹 Expiry check
-    const now = new Date();
-    if (sessionData.date < now) {
+    //Expiry Check
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // reset time to midnight
+
+    const sessionDate = new Date(sessionData.date);
+    sessionDate.setHours(0, 0, 0, 0);
+    console.log(sessionDate, "sessionDate", today, "today")
+    if (sessionDate < today) {
         return next(new AppError("This event session has already expired", 400));
     }
+
 
     // 🔹 Price calculation
     const pricePerTicket = sessionData.pricePerTicket || eventData.price || 0;
