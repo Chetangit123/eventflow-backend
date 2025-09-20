@@ -11,13 +11,14 @@ const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./src/config/swagger");
 const path = require("path");
 const ENVIRONMENT = require("./src/config/env");
+const webhookRoutes = require("./src/routes/webhookRoutes");
 //cron file
 require("./src/workers/ticketGenerator");
 require("./src/workers/cancelOrderCron");
 console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
 
 const app = express();
-
+app.use('/webhook', webhookRoutes)
 app.use(helmet());
 const corsOptions = {
     origin: [
