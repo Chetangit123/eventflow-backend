@@ -24,7 +24,8 @@ const EventSchema = new Schema({
     startDate: { type: Date, required: true }, // ✅ Event start date
     endDate: { type: Date, required: true },   // ✅ Event end date
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
-    isActive: { type: Boolean, default: true }
+    isActive: { type: Boolean, default: true },
+    isVisible: { type: Boolean, default: true }
 }, { timestamps: true });
 
 softDelete(EventSchema);
