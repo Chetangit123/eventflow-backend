@@ -21,6 +21,8 @@ router.post('/create-event-session', protect('superadmin', 'event_manager'), val
 router.get('/get-session-by-id', protect('superadmin', 'event_manager'), eventManagementController.getEventSessionBySessionId);
 router.put('/delete-event-session', protect('superadmin', 'event_manager'), eventManagementController.deleteEventSession);
 router.put('/change-event-session-status', protect('superadmin', 'event_manager'), eventManagementController.changeEventSessionStatus);
+router.put('/update-event-session', protect('superadmin', 'event_manager'), validateBody(eventValidation.updateEventSession), eventManagementController.updateEventSession);
+router.put('/update-event-session-status', protect('superadmin', 'event_manager'), eventManagementController.updateEventSessionStatus);
 
 /** Scanned History */
 //

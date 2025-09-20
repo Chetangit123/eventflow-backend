@@ -429,3 +429,96 @@ exports.getGatekeeperScannedHistory = catchAsync(async (req, res, next) => {
     });
 });
 
+
+exports.updateEventSession = catchAsync(async (req, res, next) => {
+    const { sessionId, ...updateFields } = req.body;
+
+    if (!sessionId) {
+        return next(new AppError("sessionId is required", 400));
+    }
+
+    // ✅ Find the session
+    const session = await EventSession.findById(sessionId);
+    if (!session ) {
+        return next(new AppError("Event session not found", 404));
+    }
+
+    // ✅ Optional: Check date within event range if date is provided
+    if (updateFields.date) {
+        const event = await Event.findById(session.event);
+        if (!event) {
+            return next(new AppError("Associated event not found", 404));
+        }
+
+        const normalizeDate = (date) => new Date(date.toISOString().split("T")[0]);
+        const sessionDate = normalizeDate(new Date(updateFields.date));
+
+        if (sessionDate < normalizeDate(event.startDate) || sessionDate > normalizeDate(event.endDate)) {
+            return next(new AppError("Session date is outside event date range", 400));
+        }
+
+        updateFields.date = sessionDate;
+    }
+
+    // ✅ Validate remainingCapacity <= totalCapacity if both are provided
+    if (updateFields.totalCapacity !== undefined && updateFields.remainingCapacity !== undefined) {
+        if (updateFields.remainingCapacity > updateFields.totalCapacity) {
+            return next(
+                new AppError("Remaining capacity cannot be greater than total capacity", 400)
+            );
+        }
+    }
+
+    // ✅ Optional: Check duplicate session for same event, date, and time
+    if (updateFields.date || updateFields.startTime || updateFields.endTime) {
+        const existing = await EventSession.findOne({
+            _id: { $ne: sessionId },
+            event: session.event,
+            date: updateFields.date || session.date,
+            startTime: updateFields.startTime || session.startTime,
+            endTime: updateFields.endTime || session.endTime,
+            isDeleted: false
+        });
+
+        if (existing) {
+            return next(
+                new AppError("Another session exists for the same date and time", 400)
+            );
+        }
+    }
+
+    // ✅ Update only the provided fields
+    Object.keys(updateFields).forEach(key => {
+        session[key] = updateFields[key];
+    });
+
+    await session.save();
+
+    return successRes(res, 200, true, "Event session updated successfully", session);
+});
+
+
+
+exports.updateEventSessionStatus = catchAsync(async (req, res, next) => {
+
+    console.log(req.body, "req.body");
+    const { sessionId, status } = req.body;
+
+    if (!sessionId || !status) {
+        return next(new AppError("sessionId and status are required", 400));
+    }
+
+    if (!["scheduled", "cancelled", "completed"].includes(status)) {
+        return next(new AppError("Invalid status value", 400));
+    }
+
+    const session = await EventSession.findById(sessionId);
+    if (!session) {
+        return next(new AppError("Event session not found", 404));
+    }
+
+    session.status = status;
+    await session.save();
+
+    return successRes(res, 200, true, "Event session status updated successfully", session);
+})
