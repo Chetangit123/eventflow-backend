@@ -14,7 +14,7 @@ const ENVIRONMENT = require("./src/config/env");
 const webhookRoutes = require("./src/routes/webhookRoutes");
 //cron file
 require("./src/workers/ticketGenerator");
-require("./src/workers/cancelOrderCron");
+// require("./src/workers/cancelOrderCron");
 console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
 
 const app = express();
@@ -25,7 +25,8 @@ const corsOptions = {
         "https://taal.life",
         "https://www.taal.life",
         "https://admin.taal.life",
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://localhost:3001",
     ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     preflightContinue: false,
