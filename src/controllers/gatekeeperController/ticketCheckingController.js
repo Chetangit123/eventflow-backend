@@ -6,133 +6,6 @@ const { successRes } = require("../../utils/responseFormatter");
 const mongoose = require("mongoose");
 const moment = require("moment-timezone");
 
-/** 
-exports.validateTicket = catchAsync(async (req, res, next) => {
-    const ticketId = req?.body?.ticketId;
-    const gatekeeperId = req.user?._id;
-
-    if (!ticketId) return next(new AppError("Ticket ID is required", 400));
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
-
-    try {
-        const booking = await TicketBooking.findOne({ "tickets.ticketId": ticketId })
-            .populate("event")
-            .populate("eventSession")
-            .session(session);
-
-        let result = "valid";
-        let responseMsg = "Ticket validated successfully";
-        let extraData = {};
-
-        if (!booking) {
-            result = "not_found";
-            responseMsg = "Invalid Ticket - not found";
-            await GatekeeperScan.create([{ gatekeeper: gatekeeperId, ticketId, eventSession: null, event: null, result, notes: responseMsg }], { session });
-            await session.commitTransaction();
-            session.endSession();
-            return successRes(res, 404, false, responseMsg, extraData);
-        }
-
-        const ticket = booking.tickets.find(t => t.ticketId === ticketId);
-        if (!ticket) {
-            result = "not_found";
-            responseMsg = "Invalid Ticket - not found";
-            await GatekeeperScan.create([{ gatekeeper: gatekeeperId, ticketId, ticketRef: null, eventSession: booking.eventSession, event: booking.event, result, notes: responseMsg }], { session });
-            await session.commitTransaction();
-            session.endSession();
-            return successRes(res, 404, false, responseMsg, extraData);
-        }
-
-        const now = moment().tz("Asia/Kolkata"); // current time
-        ticket.scanHistory = ticket.scanHistory || [];
-
-        const eventStart = moment.tz(booking.event.startDate, "Asia/Kolkata").startOf("day");
-        const eventEnd = moment.tz(booking.event.endDate, "Asia/Kolkata").endOf("day");
-
-        // Event date check for all tickets
-        if (now.isBefore(eventStart) || now.isAfter(eventEnd)) {
-            result = "invalid";
-            responseMsg = "Ticket cannot be scanned outside event dates";
-        }
-
-        // Session status check for normal tickets only
-        if (!ticket.validForAllDays && result === "valid") {
-            if (booking.eventSession?.status === "cancelled") {
-                result = "invalid";
-                responseMsg = "This event session has been cancelled";
-            } else if (booking.eventSession?.status === "completed") {
-                result = "invalid";
-                responseMsg = "This event session has already been completed";
-            }
-        }
-
-        // Ticket active/payment check
-        if (ticket.status !== "generated") {
-            result = "invalid";
-            responseMsg = "Ticket not active";
-        } else if (booking.paymentStatus !== "paid") {
-            result = "invalid";
-            responseMsg = "Payment not verified";
-        }
-
-        // If still valid, proceed to scan
-        if (result === "valid") {
-            // Determine scan date
-            const scanDate = ticket.validForAllDays ? now.clone() : moment.tz(booking.eventSession.date, "YYYY-MM-DD", "Asia/Kolkata");
-
-            // Already scanned check
-            const alreadyScannedToday = ticket.scanHistory.some(scan =>
-                moment(scan.scannedAt).tz("Asia/Kolkata").isSame(scanDate, "day")
-            );
-
-            if (alreadyScannedToday) {
-                result = "already_scanned";
-                responseMsg = "Ticket already used for today";
-                const lastScan = ticket.scanHistory[ticket.scanHistory.length - 1];
-                extraData = { scannedAt: lastScan?.scannedAt, attendeeName: ticket.attendeeName, eventName: booking.event.name };
-            } else if (!ticket.validForAllDays && !now.isSame(scanDate, "day")) {
-                // Normal ticket wrong day
-                result = "invalid";
-                responseMsg = "Ticket not valid for today";
-            } else {
-                // ✅ Mark scanned
-                ticket.scanHistory.push({ scannedAt: now, session: booking.eventSession._id });
-                if (!ticket.validForAllDays) {
-                    ticket.scanned = true;
-                    ticket.scannedAt = now;
-                }
-
-                await booking.save({ session });
-
-                extraData = {
-                    ticketId: ticket.ticketId,
-                    attendeeName: ticket.attendeeName,
-                    eventName: booking.event.name,
-                    eventDateTime: `${booking.eventSession.date} | ${booking.eventSession.startTime}-${booking.eventSession.endTime}`,
-                    scannedAt: now,
-                };
-            }
-        }
-
-        // Save scan log
-        await GatekeeperScan.create([{ gatekeeper: gatekeeperId, ticketId, eventSession: booking.eventSession, ticketRef: ticket._id, event: booking.event, result, notes: responseMsg }], { session });
-
-        await session.commitTransaction();
-        session.endSession();
-
-        return successRes(res, result === "valid" ? 200 : 400, result === "valid", responseMsg, extraData);
-
-    } catch (err) {
-        await session.abortTransaction();
-        session.endSession();
-        return next(new AppError(err.message, 500));
-    }
-});
-
-*/
-
 // exports.validateTicket = catchAsync(async (req, res, next) => {
 //     const ticketId = req?.body?.ticketId;
 //     const gatekeeperId = req.user?._id;
@@ -171,24 +44,29 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
 //             return successRes(res, 404, false, responseMsg, extraData);
 //         }
 
-//         // const now = moment().tz("Asia/Kolkata");
-//         const now = moment("2025-09-24T16:40:13+05:30").tz("Asia/Kolkata");
+//         const now = moment().tz("Asia/Kolkata");
 //         ticket.scanHistory = ticket.scanHistory || [];
 
-//         const eventStart = moment.tz(booking.event.startDate, "Asia/Kolkata").startOf("day");
-//         const eventEnd = moment.tz(booking.event.endDate, "Asia/Kolkata").endOf("day");
-
-//         // Event date check
-//         if (!ticket.validForAllDays && !ticket.isVipTicket) {
-//             const sessionDate = moment.tz(booking.eventSession.date, "YYYY-MM-DD", "Asia/Kolkata").startOf("day");
+//         // Event start and end dates in Asia/Kolkata
+//         const eventStart = moment.utc(booking.event.startDate).tz("Asia/Kolkata").startOf("day");
+//         const eventEnd = moment.utc(booking.event.endDate)
+//             .tz("Asia/Kolkata")
+//             .subtract(1, "day")   // ✅ subtract 1 day
+//             .endOf("day");
+//         console.log(eventStart, eventEnd, " event dates");
+//         // ---------- Event date validation ----------
+//         if (ticket.isVipTicket || ticket.validForAllDays) {
+//             // VIP / All-days → check if today is within event dates
+//             if (now.isBefore(eventStart, "day") || now.isAfter(eventEnd, "day")) {
+//                 result = "invalid";
+//                 responseMsg = "Ticket cannot be scanned outside event dates";
+//             }
+//         } else {
+//             // Normal ticket → check against session date
+//             const sessionDate = moment.tz(booking.eventSession.date, "Asia/Kolkata").startOf("day");
 //             if (!now.isSame(sessionDate, "day")) {
 //                 result = "invalid";
 //                 responseMsg = "Ticket not valid for today";
-//             }
-//         } else {
-//             if (now.isBefore(eventStart) || now.isAfter(eventEnd)) {
-//                 result = "invalid";
-//                 responseMsg = "Ticket cannot be scanned outside event dates";
 //             }
 //         }
 
@@ -212,14 +90,12 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
 //             responseMsg = "Payment not verified";
 //         }
 
-//         // If still valid, proceed to scan
+//         // ---------- Scan processing ----------
 //         if (result === "valid") {
-//             // Determine scan date
-//             const scanDate = (ticket.validForAllDays || ticket.isVipTicket)
-//                 ? now.clone().startOf("day") // VIP or all-days → today
-//                 : moment.tz(booking.eventSession.date, "YYYY-MM-DD", "Asia/Kolkata"); // normal → session date
+//             const scanDate = (ticket.isVipTicket || ticket.validForAllDays)
+//                 ? now.clone().startOf("day")
+//                 : moment.tz(booking.eventSession.date, "Asia/Kolkata");
 
-//             // Define allowed scan window: 18:00 - 23:50
 //             const scanWindowStart = scanDate.clone().hour(16).minute(0).second(0);
 //             const scanWindowEnd = scanDate.clone().hour(23).minute(50).second(0);
 
@@ -227,7 +103,7 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
 //                 result = "invalid";
 //                 responseMsg = `Ticket can only be scanned between 18:00 and 23:50`;
 //             } else {
-//                 // Already scanned check (one scan per day)
+//                 // Check already scanned
 //                 const alreadyScannedToday = ticket.scanHistory.some(scan =>
 //                     moment(scan.scannedAt).tz("Asia/Kolkata").isSame(scanDate, "day")
 //                 );
@@ -236,11 +112,10 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
 //                     result = "already_scanned";
 //                     responseMsg = "Ticket already used for today";
 //                     const lastScan = ticket.scanHistory[ticket.scanHistory.length - 1];
-//                     extraData = { scannedAt: lastScan?.scannedAt, attendeeName: ticket.attendeeName, eventName: booking.event.name };
+//                     extraData = { scannedAt: lastScan?.scannedAt, attendeeName: ticket.attendeeName, eventName: booking.event.title };
 //                 } else {
-//                     // ✅ Mark scanned
 //                     ticket.scanHistory.push({ scannedAt: now, session: booking.eventSession._id });
-//                     if (!ticket.validForAllDays && !ticket.isVipTicket) {
+//                     if (!ticket.isVipTicket && !ticket.validForAllDays) {
 //                         ticket.scanned = true;
 //                         ticket.scannedAt = now;
 //                     }
@@ -249,8 +124,11 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
 
 //                     extraData = {
 //                         ticketId: ticket.ticketId,
-//                         attendeeName: ticket.attendeeName,
-//                         eventName: booking.event.name,
+//                         attendeeName: ticket?.attendeeName,
+//                         eventName: booking?.event.title,
+//                         validForAllDays: ticket?.validForAllDays,
+//                         isVipTicket: ticket?.isVipTicket,
+//                         generatedBy: booking?.generatedBy || null,
 //                         eventDateTime: `${booking.eventSession.date} | ${booking.eventSession.startTime}-${booking.eventSession.endTime}`,
 //                         scannedAt: now,
 //                     };
@@ -292,10 +170,21 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
         let responseMsg = "Ticket validated successfully";
         let extraData = {};
 
+        // ------------------ Booking not found ------------------
         if (!booking) {
             result = "not_found";
             responseMsg = "Invalid Ticket - not found";
-            await GatekeeperScan.create([{ gatekeeper: gatekeeperId, ticketId, eventSession: null, event: null, result, notes: responseMsg }], { session });
+            await GatekeeperScan.create(
+                [{
+                    gatekeeper: gatekeeperId,
+                    ticketId,
+                    eventSession: null,
+                    event: null,
+                    result,
+                    notes: responseMsg
+                }],
+                { session }
+            );
             await session.commitTransaction();
             session.endSession();
             return successRes(res, 404, false, responseMsg, extraData);
@@ -305,35 +194,56 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
         if (!ticket) {
             result = "not_found";
             responseMsg = "Invalid Ticket - not found";
-            await GatekeeperScan.create([{ gatekeeper: gatekeeperId, ticketId, ticketRef: null, eventSession: booking.eventSession, event: booking.event, result, notes: responseMsg }], { session });
+            await GatekeeperScan.create(
+                [{
+                    gatekeeper: gatekeeperId,
+                    ticketId,
+                    ticketRef: null,
+                    eventSession: booking.eventSession,
+                    event: booking.event,
+                    result,
+                    notes: responseMsg
+                }],
+                { session }
+            );
             await session.commitTransaction();
             session.endSession();
-            return successRes(res, 404, false, responseMsg, extraData);
+            return successRes(res, 404, false, responseMsg, {});
         }
 
         const now = moment().tz("Asia/Kolkata");
         ticket.scanHistory = ticket.scanHistory || [];
 
-        // Event start and end dates in Asia/Kolkata
+        // ✅ Common extraData for all cases where ticket exists
+        const baseExtraData = {
+            ticketId: ticket.ticketId,
+            attendeeName: ticket?.attendeeName,
+            eventName: booking?.event.title,
+            validForAllDays: ticket?.validForAllDays,
+            isVipTicket: ticket?.isVipTicket,
+            generatedBy: booking?.generatedBy || null,
+            eventDateTime: `${booking.eventSession.date} | ${booking.eventSession.startTime}-${booking.eventSession.endTime}`
+        };
+
+        // ---------- Event date validation ----------
         const eventStart = moment.utc(booking.event.startDate).tz("Asia/Kolkata").startOf("day");
         const eventEnd = moment.utc(booking.event.endDate)
             .tz("Asia/Kolkata")
-            .subtract(1, "day")   // ✅ subtract 1 day
+            .subtract(1, "day")
             .endOf("day");
-        console.log(eventStart, eventEnd, " event dates");
-        // ---------- Event date validation ----------
+
         if (ticket.isVipTicket || ticket.validForAllDays) {
-            // VIP / All-days → check if today is within event dates
             if (now.isBefore(eventStart, "day") || now.isAfter(eventEnd, "day")) {
                 result = "invalid";
                 responseMsg = "Ticket cannot be scanned outside event dates";
+                extraData = baseExtraData;
             }
         } else {
-            // Normal ticket → check against session date
             const sessionDate = moment.tz(booking.eventSession.date, "Asia/Kolkata").startOf("day");
             if (!now.isSame(sessionDate, "day")) {
                 result = "invalid";
                 responseMsg = "Ticket not valid for today";
+                extraData = baseExtraData;
             }
         }
 
@@ -342,19 +252,23 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
             if (booking.eventSession?.status === "cancelled") {
                 result = "invalid";
                 responseMsg = "This event session has been cancelled";
+                extraData = baseExtraData;
             } else if (booking.eventSession?.status === "completed") {
                 result = "invalid";
                 responseMsg = "This event session has already been completed";
+                extraData = baseExtraData;
             }
         }
 
         // Ticket active/payment check
-        if (ticket.status !== "generated") {
+        if (ticket.status !== "generated" && result === "valid") {
             result = "invalid";
             responseMsg = "Ticket not active";
-        } else if (booking.paymentStatus !== "paid") {
+            extraData = baseExtraData;
+        } else if (booking.paymentStatus !== "paid" && result === "valid") {
             result = "invalid";
             responseMsg = "Payment not verified";
+            extraData = baseExtraData;
         }
 
         // ---------- Scan processing ----------
@@ -363,14 +277,14 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
                 ? now.clone().startOf("day")
                 : moment.tz(booking.eventSession.date, "Asia/Kolkata");
 
-            const scanWindowStart = scanDate.clone().hour(16).minute(0).second(0);
+            const scanWindowStart = scanDate.clone().hour(11).minute(0).second(0);
             const scanWindowEnd = scanDate.clone().hour(23).minute(50).second(0);
 
             if (!now.isBetween(scanWindowStart, scanWindowEnd, undefined, '[]')) {
                 result = "invalid";
                 responseMsg = `Ticket can only be scanned between 18:00 and 23:50`;
+                extraData = baseExtraData;
             } else {
-                // Check already scanned
                 const alreadyScannedToday = ticket.scanHistory.some(scan =>
                     moment(scan.scannedAt).tz("Asia/Kolkata").isSame(scanDate, "day")
                 );
@@ -379,7 +293,10 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
                     result = "already_scanned";
                     responseMsg = "Ticket already used for today";
                     const lastScan = ticket.scanHistory[ticket.scanHistory.length - 1];
-                    extraData = { scannedAt: lastScan?.scannedAt, attendeeName: ticket.attendeeName, eventName: booking.event.title };
+                    extraData = {
+                        ...baseExtraData,
+                        scannedAt: lastScan?.scannedAt
+                    };
                 } else {
                     ticket.scanHistory.push({ scannedAt: now, session: booking.eventSession._id });
                     if (!ticket.isVipTicket && !ticket.validForAllDays) {
@@ -390,13 +307,7 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
                     await booking.save({ session });
 
                     extraData = {
-                        ticketId: ticket.ticketId,
-                        attendeeName: ticket?.attendeeName,
-                        eventName: booking?.event.title,
-                        validForAllDays: ticket?.validForAllDays,
-                        isVipTicket: ticket?.isVipTicket,
-                        generatedBy: booking?.generatedBy || null,
-                        eventDateTime: `${booking.eventSession.date} | ${booking.eventSession.startTime}-${booking.eventSession.endTime}`,
+                        ...baseExtraData,
                         scannedAt: now,
                     };
                 }
@@ -404,12 +315,29 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
         }
 
         // Save scan log
-        await GatekeeperScan.create([{ gatekeeper: gatekeeperId, ticketId, eventSession: booking.eventSession, ticketRef: ticket._id, event: booking.event, result, notes: responseMsg }], { session });
+        await GatekeeperScan.create(
+            [{
+                gatekeeper: gatekeeperId,
+                ticketId,
+                eventSession: booking.eventSession,
+                ticketRef: ticket._id,
+                event: booking.event,
+                result,
+                notes: responseMsg
+            }],
+            { session }
+        );
 
         await session.commitTransaction();
         session.endSession();
 
-        return successRes(res, result === "valid" ? 200 : 400, result === "valid", responseMsg, extraData);
+        return successRes(
+            res,
+            result === "valid" ? 200 : 400,
+            result === "valid",
+            responseMsg,
+            extraData || {}
+        );
 
     } catch (err) {
         await session.abortTransaction();
@@ -417,7 +345,6 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
         return next(new AppError(err.message, 500));
     }
 });
-
 
 
 
