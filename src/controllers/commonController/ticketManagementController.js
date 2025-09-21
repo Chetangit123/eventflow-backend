@@ -125,121 +125,237 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
 const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
     const { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10, ticketStatus = "confirmed" } = req.query;
 
-    if (!eventId) {
-        return next(new AppError("eventId is required", 400));
-    }
-
+    if (!eventId) return next(new AppError("eventId is required", 400));
     if (!isValidId(eventId)) return next(new AppError("Invalid event id", 400));
-
     if (sessionId && !isValidId(sessionId)) return next(new AppError("Invalid session id", 400));
+    if (ticketStatus && !['pending', 'confirmed', 'failed'].includes(ticketStatus)) return next(new AppError('Invalid status value', 400));
 
-    if (ticketStatus && !['pending', 'confirmed', 'failed'].includes(ticketStatus)) {
-        return next(new AppError('Invalid status value', 400));
-    }
+    const pageNum = parseInt(page);
+    const pageSize = parseInt(limit);
 
-    let filter = { event: eventId, ticketStatus };
+    const matchBooking = {
+        event: new mongoose.Types.ObjectId(eventId),
+        ticketStatus
+    };
 
-    // ✅ Case 1: Session based tickets (non-VIP + non-allDays)
+    const orGeneratedBy = [
+        { generatedBy: "admin" },
+        { generatedBy: { $exists: false } }
+    ];
+
+    // Build ticket-level $elemMatch filter
+    const ticketElemMatch = {};
+    if (typeof isVip !== "undefined") ticketElemMatch.isVipTicket = isVip === "true";
+    if (typeof validForAllDays !== "undefined") ticketElemMatch.validForAllDays = validForAllDays === "true";
     if (sessionId) {
-        filter = {
-            ...filter,
-            eventSession: sessionId,
-            $or: [
-                { generatedBy: "admin" },
-                { generatedBy: { $exists: false } } // purane docs bhi include
-            ],
-            tickets: {
-                $elemMatch: {
-                    isVipTicket: false,
-                    validForAllDays: false,
-                },
-            },
-        };
+        ticketElemMatch.isVipTicket = false;
+        ticketElemMatch.validForAllDays = false;
     }
 
-    // ✅ Case 2: VIP tickets filter
-    if (typeof isVip !== "undefined") {
-        filter = {
-            ...filter,
-            $or: [
-                { generatedBy: "admin" },
-                { generatedBy: { $exists: false } }
-            ],
-            tickets: {
-                $elemMatch: {
-                    isVipTicket: isVip === "true",
+    // Aggregate pipeline
+    const pipeline = [
+        { $match: matchBooking },
+        { $match: { $or: orGeneratedBy } },
+        { $match: { tickets: { $elemMatch: ticketElemMatch } } },
+        // Project only matching tickets
+        {
+            $project: {
+                tickets: {
+                    $filter: {
+                        input: "$tickets",
+                        as: "ticket",
+                        cond: {
+                            $and: [
+                                ...(typeof isVip !== "undefined" ? [{ $eq: ["$$ticket.isVipTicket", isVip === "true"] }] : []),
+                                ...(typeof validForAllDays !== "undefined" ? [{ $eq: ["$$ticket.validForAllDays", validForAllDays === "true"] }] : []),
+                                ...(sessionId ? [
+                                    { $eq: ["$$ticket.isVipTicket", false] },
+                                    { $eq: ["$$ticket.validForAllDays", false] }
+                                ] : [])
+                            ]
+                        }
+                    }
                 },
-            },
-        };
-    }
+                event: 1,
+                eventSession: 1
+            }
+        },
+        { $unwind: "$tickets" },
+        {
+            $addFields: {
+                "tickets.bookingId": "$_id",
+                "tickets.event": "$event",
+                "tickets.session": "$eventSession",
+                "tickets.createdAt": "$tickets.createdAt"
+            }
+        },
+        { $replaceRoot: { newRoot: "$tickets" } },
+        { $sort: { createdAt: -1 } },
+        { $skip: (pageNum - 1) * pageSize },
+        { $limit: pageSize },
+        // Populate event
+        {
+            $lookup: {
+                from: "events",
+                localField: "event",
+                foreignField: "_id",
+                as: "event"
+            }
+        },
+        { $unwind: { path: "$event", preserveNullAndEmptyArrays: true } },
+        // Populate session
+        {
+            $lookup: {
+                from: "eventsessions",
+                localField: "session",
+                foreignField: "_id",
+                as: "session"
+            }
+        },
+        { $unwind: { path: "$session", preserveNullAndEmptyArrays: true } }
+    ];
 
-    // ✅ Case 3: validForAllDays filter
-    if (typeof validForAllDays !== "undefined") {
-        filter = {
-            ...filter,
-            $or: [
-                { generatedBy: "admin" },
-                { generatedBy: { $exists: false } }
-            ],
-            tickets: {
-                $elemMatch: {
-                    validForAllDays: validForAllDays === "true",
-                },
-            },
-        };
-    }
+    const tickets = await TicketBooking.aggregate(pipeline);
 
-    // ✅ Fetch bookings
-    const bookings = await TicketBooking.find(filter)
-        .populate("event")
-        .populate("eventSession")
-        .sort({ createdAt: -1 });
-
-    // ✅ Flatten tickets
-    let tickets = [];
-    bookings.forEach((b) => {
-        b.tickets.forEach((t) => {
-            if (sessionId) {
-                if (!t.isVipTicket && !t.validForAllDays) {
-                    tickets.push({
-                        bookingId: b._id,
-                        event: b.event,
-                        session: b.eventSession,
-                        createdAt: t.createdAt,
-                        ...t.toObject(),
-                    });
-                }
-            } else {
-                if (
-                    (typeof isVip === "undefined" || t.isVipTicket === (isVip === "true")) &&
-                    (typeof validForAllDays === "undefined" || t.validForAllDays === (validForAllDays === "true"))
-                ) {
-                    tickets.push({
-                        bookingId: b._id,
-                        event: b.event,
-                        session: b.eventSession,
-                        ...t.toObject(),
-                    });
+    // Count total tickets
+    const countPipeline = [
+        { $match: matchBooking },
+        { $match: { $or: orGeneratedBy } },
+        { $match: { tickets: { $elemMatch: ticketElemMatch } } },
+        {
+            $project: {
+                tickets: {
+                    $filter: {
+                        input: "$tickets",
+                        as: "ticket",
+                        cond: {
+                            $and: [
+                                ...(typeof isVip !== "undefined" ? [{ $eq: ["$$ticket.isVipTicket", isVip === "true"] }] : []),
+                                ...(typeof validForAllDays !== "undefined" ? [{ $eq: ["$$ticket.validForAllDays", validForAllDays === "true"] }] : []),
+                                ...(sessionId ? [
+                                    { $eq: ["$$ticket.isVipTicket", false] },
+                                    { $eq: ["$$ticket.validForAllDays", false] }
+                                ] : [])
+                            ]
+                        }
+                    }
                 }
             }
-        });
-    });
+        },
+        { $unwind: "$tickets" },
+        { $count: "totalTickets" }
+    ];
 
-    // ✅ Pagination
-    const totalTickets = tickets.length;
-    const totalPages = Math.ceil(totalTickets / limit);
-    const currentPage = parseInt(page);
-
-    const paginatedTickets = tickets.slice((currentPage - 1) * limit, currentPage * limit);
+    const countResult = await TicketBooking.aggregate(countPipeline);
+    const totalTickets = countResult[0]?.totalTickets || 0;
+    const totalPages = Math.ceil(totalTickets / pageSize);
 
     return successRes(res, 200, true, "Tickets fetched successfully", {
         totalTickets,
         totalPages,
-        currentPage,
-        pageSize: parseInt(limit),
-        tickets: paginatedTickets,
+        currentPage: pageNum,
+        pageSize,
+        tickets
     });
 });
+
+
+// const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
+//     const { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10, ticketStatus = "confirmed" } = req.query;
+
+//     if (!eventId) return next(new AppError("eventId is required", 400));
+//     if (!isValidId(eventId)) return next(new AppError("Invalid event id", 400));
+//     if (sessionId && !isValidId(sessionId)) return next(new AppError("Invalid session id", 400));
+//     if (ticketStatus && !['pending', 'confirmed', 'failed'].includes(ticketStatus)) return next(new AppError('Invalid status value', 400));
+
+//     const pageNum = parseInt(page);
+//     const pageSize = parseInt(limit);
+
+//     const matchBooking = {
+//         event: new mongoose.Types.ObjectId(eventId),
+//         ticketStatus
+//     };
+
+//     const orGeneratedBy = [
+//         { generatedBy: "admin" },
+//         { generatedBy: { $exists: false } }
+//     ];
+
+//     const pipeline = [
+//         { $match: matchBooking },
+//         { $match: { $or: orGeneratedBy } },
+//         { $unwind: "$tickets" },
+//         // Ticket-level filters
+//         {
+//             $match: {
+//                 ...(typeof isVip !== "undefined" ? { "tickets.isVipTicket": isVip === "true" } : {}),
+//                 ...(typeof validForAllDays !== "undefined" ? { "tickets.validForAllDays": validForAllDays === "true" } : {}),
+//                 ...(sessionId ? { "tickets.isVipTicket": false, "tickets.validForAllDays": false, eventSession: new mongoose.Types.ObjectId(sessionId) } : {})
+//             }
+//         },
+//         {
+//             $addFields: {
+//                 "tickets.bookingId": "$_id",
+//                 "tickets.event": "$event",
+//                 "tickets.session": "$eventSession",
+//                 "tickets.createdAt": "$tickets.createdAt"
+//             }
+//         },
+//         { $replaceRoot: { newRoot: "$tickets" } },
+//         { $sort: { createdAt: -1 } },
+//         { $skip: (pageNum - 1) * pageSize },
+//         { $limit: pageSize },
+//         // Populate event
+//         {
+//             $lookup: {
+//                 from: "events",
+//                 localField: "event",
+//                 foreignField: "_id",
+//                 as: "event"
+//             }
+//         },
+//         { $unwind: { path: "$event", preserveNullAndEmptyArrays: true } },
+//         // Populate session
+//         {
+//             $lookup: {
+//                 from: "eventsessions",
+//                 localField: "session",
+//                 foreignField: "_id",
+//                 as: "session"
+//             }
+//         },
+//         { $unwind: { path: "$session", preserveNullAndEmptyArrays: true } }
+//     ];
+
+//     const tickets = await TicketBooking.aggregate(pipeline);
+
+//     // Count total tickets
+//     const countPipeline = [
+//         { $match: matchBooking },
+//         { $match: { $or: orGeneratedBy } },
+//         { $unwind: "$tickets" },
+//         {
+//             $match: {
+//                 ...(typeof isVip !== "undefined" ? { "tickets.isVipTicket": isVip === "true" } : {}),
+//                 ...(typeof validForAllDays !== "undefined" ? { "tickets.validForAllDays": validForAllDays === "true" } : {}),
+//                 ...(sessionId ? { "tickets.isVipTicket": false, "tickets.validForAllDays": false, eventSession: new mongoose.Types.ObjectId(sessionId) } : {})
+//             }
+//         },
+//         { $count: "totalTickets" }
+//     ];
+
+//     const countResult = await TicketBooking.aggregate(countPipeline);
+//     const totalTickets = countResult[0]?.totalTickets || 0;
+//     const totalPages = Math.ceil(totalTickets / pageSize);
+
+//     return successRes(res, 200, true, "Tickets fetched successfully", {
+//         totalTickets,
+//         totalPages,
+//         currentPage: pageNum,
+//         pageSize,
+//         tickets
+//     });
+// });
 
 const getTicketsBySessionId = catchAsync(async (req, res, next) => {
     let { sessionId, page = 1, limit = 10, ticketStatus } = req.query;
