@@ -277,7 +277,7 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
                 ? now.clone().startOf("day")
                 : moment.tz(booking.eventSession.date, "Asia/Kolkata");
 
-            const scanWindowStart = scanDate.clone().hour(11).minute(0).second(0);
+            const scanWindowStart = scanDate.clone().hour(18).minute(0).second(0);
             const scanWindowEnd = scanDate.clone().hour(23).minute(50).second(0);
 
             if (!now.isBetween(scanWindowStart, scanWindowEnd, undefined, '[]')) {
