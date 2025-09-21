@@ -35,7 +35,7 @@ const TicketBookingSchema = new Schema({
 
     paymentMethod: { type: String, enum: ['razorpay'], required: true },
     paymentStatus: { type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' },
-    paymentProcessedUsing: { type: String, enum: ['verify-api', 'webhook'] },
+    paymentProcessedUsing: { type: String, enum: ['verify-api', 'webhook', 'admin-manual'] },
 
     ticketStatus: { type: String, enum: ['pending', 'processing', 'retrying', 'confirmed', 'failed'], default: 'pending' },
 
