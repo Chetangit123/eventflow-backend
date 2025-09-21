@@ -282,7 +282,7 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
 
             if (!now.isBetween(scanWindowStart, scanWindowEnd, undefined, '[]')) {
                 result = "invalid";
-                responseMsg = `Ticket can only be scanned between 18:00 and 23:50`;
+                responseMsg = `Ticket can only be scanned between 6:30 PM and 11:50 PM`;
                 extraData = baseExtraData;
             } else {
                 const alreadyScannedToday = ticket.scanHistory.some(scan =>
