@@ -593,7 +593,8 @@ exports.getTicketBookings = catchAsync(async (req, res, next) => {
         .select(
             "_id user eventSession event quantity attendeeDetails.name attendeeDetails.phone pricePerTicket totalAmount currency paymentMethod paymentStatus ticketStatus tickets.ticketId tickets.qrImage tickets.pdfPath tickets.attendeeName tickets.scanned tickets.status"
         ).populate("event", "title description venueName address startDate endDate")
-        .populate("eventSession", "date startTime endTime")
+        .populate("eventSession", "date startTime endTime").
+        sort({ createdAt: -1 })
         .exec();
 
     return successRes(
