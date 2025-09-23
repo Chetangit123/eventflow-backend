@@ -99,9 +99,42 @@ const updatePaymentStatus = catchAsync(async (req, res, next) => {
     return successRes(res, 200, true, "Payment status updated successfully", booking);
 });
 
+const getOverallPayments = catchAsync(async (req, res, next) => {
+    let totalPaid = 0;
+    let page = 2;
+    const pageSize = 50; // Razorpay pagination
+
+    try {
+        while (true) {
+            // Fetch orders
+            const orders = await razorpay.orders.all({ count: pageSize, skip: (page - 1) * pageSize });
+            if (!orders.items || orders.items.length === 0) break;
+
+            // Loop through each order
+            for (const order of orders.items) {
+                // Fetch payments for each order
+                const payments = await razorpay.orders.fetchPayments(order.id);
+                const capturedPayments = payments.items.filter(p => p.status === "captured");
+                capturedPayments.forEach(p => {
+                    totalPaid += p.amount / 100; // convert from paise to INR
+                });
+            }
+
+            if (orders.items.length < pageSize) break; // no more pages
+            page++;
+        }
+
+        return successRes(res, 200, true, "Total captured payments fetched", { totalPaid });
+    } catch (err) {
+        console.error("Error fetching overall payments:", err.message);
+        return next(new AppError("Failed to fetch total payments from Razorpay", 500));
+    }
+});
+
 
 module.exports = {
     searchBookings,
     checkPaymentStatus,
-    updatePaymentStatus
+    updatePaymentStatus,
+    getOverallPayments
 };

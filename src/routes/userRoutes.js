@@ -16,6 +16,10 @@ const { uploadUserProfile } = require("../services/multer");
 const bookingValidation = require("../validations/bookingValidation");
 const { validateBody } = require("../middlewares/validate");
 const contactUs = require("../models/contactUs");
+const userRateLimiter = require("../middlewares/rateLimiter");
+
+
+// router.use(userRateLimiter);
 
 
 
@@ -92,6 +96,6 @@ router.get("/get-policy", policyController.getPolicy);
 
 
 /**====================== Contact Us =========================== */
-router.post('/contact-us',  contactUsController.createContactUs);
+router.post('/contact-us', contactUsController.createContactUs);
 
 module.exports = router;

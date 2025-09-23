@@ -103,4 +103,7 @@ router.get('/search-booking', protect('superadmin'), adminDisputeController.sear
 router.get('/check-payment-status', protect('superadmin'), adminDisputeController.checkPaymentStatus);
 router.put('/update-payment-status', protect('superadmin'), adminDisputeController.updatePaymentStatus);
 
+/**===================Payment Management=================== */
+router.get('/get-all-payments', protect('superadmin'), adminDisputeController.getOverallPayments);
+
 module.exports = router;
