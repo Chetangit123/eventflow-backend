@@ -123,64 +123,54 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
 });
 
 const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
-    const { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10, ticketStatus = "confirmed", q } = req.query;
+    const {
+        eventId,
+        sessionId,
+        isVip,
+        validForAllDays,
+        page = 1,
+        limit = 10,
+        ticketStatus = "confirmed"
+    } = req.query;
+    console.log(isVip, "1111111111")
 
+    // -------- Validate Inputs --------
     if (!eventId) return next(new AppError("eventId is required", 400));
     if (!isValidId(eventId)) return next(new AppError("Invalid event id", 400));
     if (sessionId && !isValidId(sessionId)) return next(new AppError("Invalid session id", 400));
-    if (ticketStatus && !['pending', 'confirmed', 'failed'].includes(ticketStatus)) return next(new AppError('Invalid status value', 400));
+    if (ticketStatus && !['pending', 'confirmed', 'failed'].includes(ticketStatus)) {
+        return next(new AppError('Invalid status value', 400));
+    }
 
     const pageNum = parseInt(page);
     const pageSize = parseInt(limit);
 
+    // -------- Build Match Object --------
     const matchBooking = {
         event: new mongoose.Types.ObjectId(eventId),
         ticketStatus
     };
+
+    if (sessionId) {
+        matchBooking.eventSession = new mongoose.Types.ObjectId(sessionId);
+    }
+    if (typeof isVip !== "undefined") {
+        matchBooking.isVipTicket = isVip === "true";
+    }
+    if (typeof validForAllDays !== "undefined") {
+        matchBooking.validForAllDays = validForAllDays === "true";
+    }
 
     const orGeneratedBy = [
         { generatedBy: "admin" },
         { generatedBy: { $exists: false } }
     ];
 
-    // Build ticket-level $elemMatch filter
-    const ticketElemMatch = {};
-    if (typeof isVip !== "undefined") ticketElemMatch.isVipTicket = isVip === "true";
-    if (typeof validForAllDays !== "undefined") ticketElemMatch.validForAllDays = validForAllDays === "true";
-    if (sessionId) {
-        ticketElemMatch.isVipTicket = false;
-        ticketElemMatch.validForAllDays = false;
-    }
-
-    // Aggregate pipeline
+    // -------- Aggregation Pipeline --------
     const pipeline = [
         { $match: matchBooking },
         { $match: { $or: orGeneratedBy } },
-        { $match: { tickets: { $elemMatch: ticketElemMatch } } },
-        // Project only matching tickets
-        {
-            $project: {
-                tickets: {
-                    $filter: {
-                        input: "$tickets",
-                        as: "ticket",
-                        cond: {
-                            $and: [
-                                ...(typeof isVip !== "undefined" ? [{ $eq: ["$$ticket.isVipTicket", isVip === "true"] }] : []),
-                                ...(typeof validForAllDays !== "undefined" ? [{ $eq: ["$$ticket.validForAllDays", validForAllDays === "true"] }] : []),
-                                ...(sessionId ? [
-                                    { $eq: ["$$ticket.isVipTicket", false] },
-                                    { $eq: ["$$ticket.validForAllDays", false] }
-                                ] : [])
-                            ]
-                        }
-                    }
-                },
-                event: 1,
-                eventSession: 1
-            }
-        },
-        { $unwind: "$tickets" },
+        { $unwind: "$tickets" },  // unwind tickets array
         {
             $addFields: {
                 "tickets.bookingId": "$_id",
@@ -193,7 +183,7 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
         { $sort: { createdAt: -1 } },
         { $skip: (pageNum - 1) * pageSize },
         { $limit: pageSize },
-        // Populate event
+        // -------- Lookup Event --------
         {
             $lookup: {
                 from: "events",
@@ -203,7 +193,7 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
             }
         },
         { $unwind: { path: "$event", preserveNullAndEmptyArrays: true } },
-        // Populate session
+        // -------- Lookup Session --------
         {
             $lookup: {
                 from: "eventsessions",
@@ -217,31 +207,10 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
 
     const tickets = await TicketBooking.aggregate(pipeline);
 
-    // Count total tickets
+    // -------- Count Total Tickets --------
     const countPipeline = [
         { $match: matchBooking },
         { $match: { $or: orGeneratedBy } },
-        { $match: { tickets: { $elemMatch: ticketElemMatch } } },
-        {
-            $project: {
-                tickets: {
-                    $filter: {
-                        input: "$tickets",
-                        as: "ticket",
-                        cond: {
-                            $and: [
-                                ...(typeof isVip !== "undefined" ? [{ $eq: ["$$ticket.isVipTicket", isVip === "true"] }] : []),
-                                ...(typeof validForAllDays !== "undefined" ? [{ $eq: ["$$ticket.validForAllDays", validForAllDays === "true"] }] : []),
-                                ...(sessionId ? [
-                                    { $eq: ["$$ticket.isVipTicket", false] },
-                                    { $eq: ["$$ticket.validForAllDays", false] }
-                                ] : [])
-                            ]
-                        }
-                    }
-                }
-            }
-        },
         { $unwind: "$tickets" },
         { $count: "totalTickets" }
     ];
@@ -260,8 +229,9 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
 });
 
 
+
 // const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
-//     const { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10, ticketStatus = "confirmed" } = req.query;
+//     const { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10, ticketStatus = "confirmed", q } = req.query;
 
 //     if (!eventId) return next(new AppError("eventId is required", 400));
 //     if (!isValidId(eventId)) return next(new AppError("Invalid event id", 400));
@@ -281,18 +251,44 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
 //         { generatedBy: { $exists: false } }
 //     ];
 
+//     // Build ticket-level $elemMatch filter
+//     const ticketElemMatch = {};
+//     if (typeof isVip !== "undefined") ticketElemMatch.isVipTicket = isVip === "true";
+//     if (typeof validForAllDays !== "undefined") ticketElemMatch.validForAllDays = validForAllDays === "true";
+//     if (sessionId) {
+//         ticketElemMatch.isVipTicket = false;
+//         ticketElemMatch.validForAllDays = false;
+//     }
+
+//     // Aggregate pipeline
 //     const pipeline = [
 //         { $match: matchBooking },
 //         { $match: { $or: orGeneratedBy } },
-//         { $unwind: "$tickets" },
-//         // Ticket-level filters
+//         { $match: { tickets: { $elemMatch: ticketElemMatch } } },
+//         // Project only matching tickets
 //         {
-//             $match: {
-//                 ...(typeof isVip !== "undefined" ? { "tickets.isVipTicket": isVip === "true" } : {}),
-//                 ...(typeof validForAllDays !== "undefined" ? { "tickets.validForAllDays": validForAllDays === "true" } : {}),
-//                 ...(sessionId ? { "tickets.isVipTicket": false, "tickets.validForAllDays": false, eventSession: new mongoose.Types.ObjectId(sessionId) } : {})
+//             $project: {
+//                 tickets: {
+//                     $filter: {
+//                         input: "$tickets",
+//                         as: "ticket",
+//                         cond: {
+//                             $and: [
+//                                 ...(typeof isVip !== "undefined" ? [{ $eq: ["$$ticket.isVipTicket", isVip === "true"] }] : []),
+//                                 ...(typeof validForAllDays !== "undefined" ? [{ $eq: ["$$ticket.validForAllDays", validForAllDays === "true"] }] : []),
+//                                 ...(sessionId ? [
+//                                     { $eq: ["$$ticket.isVipTicket", false] },
+//                                     { $eq: ["$$ticket.validForAllDays", false] }
+//                                 ] : [])
+//                             ]
+//                         }
+//                     }
+//                 },
+//                 event: 1,
+//                 eventSession: 1
 //             }
 //         },
+//         { $unwind: "$tickets" },
 //         {
 //             $addFields: {
 //                 "tickets.bookingId": "$_id",
@@ -333,14 +329,28 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
 //     const countPipeline = [
 //         { $match: matchBooking },
 //         { $match: { $or: orGeneratedBy } },
-//         { $unwind: "$tickets" },
+//         { $match: { tickets: { $elemMatch: ticketElemMatch } } },
 //         {
-//             $match: {
-//                 ...(typeof isVip !== "undefined" ? { "tickets.isVipTicket": isVip === "true" } : {}),
-//                 ...(typeof validForAllDays !== "undefined" ? { "tickets.validForAllDays": validForAllDays === "true" } : {}),
-//                 ...(sessionId ? { "tickets.isVipTicket": false, "tickets.validForAllDays": false, eventSession: new mongoose.Types.ObjectId(sessionId) } : {})
+//             $project: {
+//                 tickets: {
+//                     $filter: {
+//                         input: "$tickets",
+//                         as: "ticket",
+//                         cond: {
+//                             $and: [
+//                                 ...(typeof isVip !== "undefined" ? [{ $eq: ["$$ticket.isVipTicket", isVip === "true"] }] : []),
+//                                 ...(typeof validForAllDays !== "undefined" ? [{ $eq: ["$$ticket.validForAllDays", validForAllDays === "true"] }] : []),
+//                                 ...(sessionId ? [
+//                                     { $eq: ["$$ticket.isVipTicket", false] },
+//                                     { $eq: ["$$ticket.validForAllDays", false] }
+//                                 ] : [])
+//                             ]
+//                         }
+//                     }
+//                 }
 //             }
 //         },
+//         { $unwind: "$tickets" },
 //         { $count: "totalTickets" }
 //     ];
 
