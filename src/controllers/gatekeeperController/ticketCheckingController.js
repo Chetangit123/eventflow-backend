@@ -229,8 +229,9 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
         const eventStart = moment.utc(booking.event.startDate).tz("Asia/Kolkata").startOf("day");
         const eventEnd = moment.utc(booking.event.endDate)
             .tz("Asia/Kolkata")
-            .subtract(1, "day")
+            // .subtract(1, "day")
             .endOf("day");
+        console.log(eventStart, eventEnd, " event dates");
 
         if (ticket.isVipTicket || ticket.validForAllDays) {
             if (now.isBefore(eventStart, "day") || now.isAfter(eventEnd, "day")) {
@@ -277,7 +278,7 @@ exports.validateTicket = catchAsync(async (req, res, next) => {
                 ? now.clone().startOf("day")
                 : moment.tz(booking.eventSession.date, "Asia/Kolkata");
 
-            const scanWindowStart = scanDate.clone().hour(18).minute(0).second(0);
+            const scanWindowStart = scanDate.clone().hour(5).minute(0).second(0);
             const scanWindowEnd = scanDate.clone().hour(23).minute(50).second(0);
 
             if (!now.isBetween(scanWindowStart, scanWindowEnd, undefined, '[]')) {

@@ -17,7 +17,7 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
         quantity,
         isVipTicket = false,
         isValidForAllDays = false,
-        vipName
+        ticketName
     } = req.body;
 
     // 🔹 Validate IDs
@@ -70,10 +70,10 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
     console.log("finalIsValidForAllDays", finalIsValidForAllDays)
     // 🔹 Attendee details (condition based)
     const attendeeName = isVipTicket
-        ? `${vipName}`
+        ? `${ticketName}`
         : isValidForAllDays
-            ? "Season Pass"
-            : "Physical Ticket";
+            ? `${ticketName}`
+            : `${ticketName}`;
 
     const attendeeDetails = Array.from({ length: 1 }, (_, i) => ({
         name: `${attendeeName}`,
@@ -123,7 +123,7 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
 });
 
 const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
-    const { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10, ticketStatus = "confirmed" } = req.query;
+    const { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10, ticketStatus = "confirmed", q } = req.query;
 
     if (!eventId) return next(new AppError("eventId is required", 400));
     if (!isValidId(eventId)) return next(new AppError("Invalid event id", 400));
