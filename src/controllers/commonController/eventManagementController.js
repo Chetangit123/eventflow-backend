@@ -51,14 +51,13 @@ exports.getAllEvents = catchAsync(async (req, res, next) => {
     // Base match filter
     let matchFilter = { isDeleted: false };
 
-    // Agar status param aaya hai to filter me isActive add karo
     if (status !== undefined) {
-        matchFilter.isActive = status === "true"; // string ko boolean me convert
+        matchFilter.isActive = status === "true";
     }
 
     qb.aggregate([
         {
-            $match: matchFilter // ✅ Dynamic filter
+            $match: matchFilter
         },
         {
             $lookup: {
@@ -74,13 +73,16 @@ exports.getAllEvents = catchAsync(async (req, res, next) => {
                                 ]
                             }
                         }
+                    },
+                    {
+                        $sort: { date: 1 } // ✅ Sort sessions by "date" ascending
                     }
                 ],
                 as: "sessions"
             }
         },
         {
-            $sort: { createdAt: -1 }
+            $sort: { createdAt: -1 } // events ko latest pehle dikhana hai
         }
     ]);
 
@@ -88,6 +90,8 @@ exports.getAllEvents = catchAsync(async (req, res, next) => {
 
     return successRes(res, 200, true, "Events with sessions retrieved successfully", events);
 });
+
+
 
 //get event by is with sessions
 exports.getEvent = catchAsync(async (req, res, next) => {
@@ -439,7 +443,7 @@ exports.updateEventSession = catchAsync(async (req, res, next) => {
 
     // ✅ Find the session
     const session = await EventSession.findById(sessionId);
-    if (!session ) {
+    if (!session) {
         return next(new AppError("Event session not found", 404));
     }
 
