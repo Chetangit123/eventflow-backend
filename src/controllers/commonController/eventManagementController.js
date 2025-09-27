@@ -120,6 +120,9 @@ exports.getEvent = catchAsync(async (req, res, next) => {
                                 ]
                             }
                         }
+                    },
+                    {
+                        $sort: { date: 1 } // ✅ Sort sessions by date ascending
                     }
                 ],
                 as: "sessions"
@@ -131,6 +134,7 @@ exports.getEvent = catchAsync(async (req, res, next) => {
 
     return successRes(res, 200, true, "Event retrieved successfully", event);
 });
+
 
 exports.changeEventStatus = catchAsync(async (req, res, next) => {
     const eventId = req.body?.eventId;
