@@ -14,6 +14,7 @@ const bookingController = require("../controllers/commonController/bookingContro
 const contactUsController = require("../controllers/adminController/contactUsController");
 const ticketManagemenrController = require('../controllers/commonController/ticketManagementController')
 const adminDisputeController = require('../controllers/adminController/adminDisputeController')
+const adminDashboardController = require("../controllers/adminController/adminDashboardController");
 const { protect } = require("../utils/jwt");
 const { validateBody, validateQuery } = require("../middlewares/validate");
 const categoryValidation = require("../validations/categoryValidation");
@@ -105,5 +106,8 @@ router.put('/update-payment-status', protect('superadmin'), adminDisputeControll
 
 /**===================Payment Management=================== */
 router.get('/get-all-payments', protect('superadmin'), adminDisputeController.getOverallPayments);
+
+/**===================Ticket Bookings Dashboard=================== */
+router.get('/overall-tickets-from-users', protect('superadmin', 'event_manager'), adminDashboardController.getOverallTicketsFromUsers);
 
 module.exports = router;
