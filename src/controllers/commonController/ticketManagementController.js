@@ -213,7 +213,7 @@ const generateTicketFromAdminSide = catchAsync(async (req, res, next) => {
 // });
 
 const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
-    const { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10, ticketStatus = "confirmed" } = req.query;
+    let { eventId, sessionId, isVip, validForAllDays, page = 1, limit = 10, ticketStatus = "confirmed", search } = req.query;
 
     if (!eventId) return next(new AppError("eventId is required", 400));
     if (!isValidId(eventId)) return next(new AppError("Invalid event id", 400));
@@ -221,6 +221,7 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
     if (ticketStatus && !['pending', 'confirmed', 'failed'].includes(ticketStatus)) {
         return next(new AppError('Invalid status value', 400));
     }
+    if (!search) search = ""
 
     const pageNum = parseInt(page);
     const pageSize = parseInt(limit);
@@ -228,7 +229,12 @@ const getAllGeneratedByTicketId = catchAsync(async (req, res, next) => {
     // -------- Build Root Match Object --------
     const matchBooking = {
         event: new mongoose.Types.ObjectId(eventId),
-        ticketStatus
+        ticketStatus,
+        //search using attendee name inside root
+        $or: [
+            { "attendeeDetails.name": { $regex: search, $options: "i" } },
+
+        ]
     };
     if (sessionId) matchBooking.eventSession = new mongoose.Types.ObjectId(sessionId);
 

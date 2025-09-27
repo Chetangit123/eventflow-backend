@@ -1,6 +1,7 @@
 const TicketBooking = require("../../models/TicketBooking");
 const catchAsync = require("../../utils/catchAsync");
 const { successRes } = require("../../utils/responseFormatter");
+const mongoose = require("mongoose");
 
 const getOverallTicketsFromUsers = catchAsync(async (req, res, next) => {
     const { sessionId } = req.query;
@@ -15,7 +16,7 @@ const getOverallTicketsFromUsers = catchAsync(async (req, res, next) => {
 
     if (sessionId) {
         if (mongoose.Types.ObjectId.isValid(sessionId)) {
-            baseFilter.eventSession = mongoose.Types.ObjectId(sessionId);
+            baseFilter.eventSession = new mongoose.Types.ObjectId(sessionId);
         } else {
             baseFilter.eventSession = sessionId;
         }
