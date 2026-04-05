@@ -40,6 +40,13 @@ exports.verifyEmailWithLink = catchAsync(async (req, res, next) => {
     return successRes(res, 200, true, "Email verified successfully", user);
 });
 
+exports.resendVerificationEmail = catchAsync(async (req, res, next) => {
+    const { email } = req.body;
+    if (!email) return next(new AppError("Email is required", 400));
+    const result = await UserService.resendVerificationEmail(email);
+    return successRes(res, 200, true, "Verification email sent successfully", result);
+});
+
 exports.loginUser = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
 

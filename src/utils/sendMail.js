@@ -4,10 +4,10 @@ const ENVIRONMENT = require("../config/env");
 const transporter = nodemailer.createTransport({
     host: ENVIRONMENT.SMTP_HOST || "smtp.gmail.com",
     port: ENVIRONMENT.SMTP_PORT || 587,
-    secure: false, // true for 465, false for 587
+    secure: false,
     auth: {
-        user: ENVIRONMENT.SMTP_USER || "taaleventslife@gmail.com",
-        pass: ENVIRONMENT.SMTP_PASS || "wluodqpwdupipmky",
+        user: ENVIRONMENT.SMTP_USER,
+        pass: ENVIRONMENT.SMTP_PASS,
     },
 });
 
@@ -18,7 +18,7 @@ async function sendMail({ to, subject, text, template, attachments }) {
         const htmlContent = template;
 
         const mailOptions = {
-            from: `"Taal Events" <${ENVIRONMENT.SMTP_USER || "taaleventslife@gmail.com"}>`,
+            from: `"Taal Events" <${ENVIRONMENT.SMTP_USER}>`,
             to,
             subject,
             text,

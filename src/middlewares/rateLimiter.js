@@ -2,12 +2,12 @@
 const rateLimit = require("express-rate-limit");
 
 const userRateLimiter = rateLimit({
-    windowMs: 60 * 1000, // 10 minutes
-    max: 2, // ek IP se max 10 requests per window
+    windowMs: 60 * 1000,
+    max: 2,
     message: "Too many requests from this IP, please try again later.",
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => req.ip // IP based limiting
+    validate: { keyGeneratorIpFallback: false },
 });
 
 module.exports = userRateLimiter;

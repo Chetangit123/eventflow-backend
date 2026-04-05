@@ -26,6 +26,7 @@ const userRateLimiter = require("../middlewares/rateLimiter");
 router.post('/create-user', authController.createUser);
 router.post('/upload-avatar', uploadUserProfile, authController.uploadAvatar);
 router.put('/verify-email-with-link', authController.verifyEmailWithLink);
+router.post('/resend-verification-email', authController.resendVerificationEmail);
 router.post('/login-user', authController.loginUser);
 router.get('/get-user-profile', protect('user'), authController.getUserProfile);
 router.put('/update-user-profile', protect('user'), authController.updateUserProfile);

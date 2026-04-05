@@ -50,14 +50,45 @@ class UserService {
         const template = EmailVerificationTemplate(user.name, verificationLink);
 
         // 5️⃣ Send verification email
-        sendMail({
+        const mailResult = await sendMail({
             to: user.email,
             subject: "Email Verification",
             template
         });
 
+        if (!mailResult.success) {
+            throw new AppError("Account created but verification email failed to send. Please use resend verification.", 500);
+        }
+
         return user;
     }
+
+    static async resendVerificationEmail(email) {
+        const user = await User.findOne({ email });
+        if (!user) throw new AppError("No account found with this email", 404);
+        if (user.isVerified) throw new AppError("Email is already verified", 400);
+        if (user.isBlocked) throw new AppError("Your account has been blocked", 401);
+
+        const token = signToken(user._id, user.email);
+        user.verificationToken = token;
+        await user.save();
+
+        const verificationLink = `${EMAIL_VERIFICATION_LINK}/${token}`;
+        const template = EmailVerificationTemplate(user.name, verificationLink);
+
+        const mailResult = await sendMail({
+            to: user.email,
+            subject: "Email Verification",
+            template
+        });
+
+        if (!mailResult.success) {
+            throw new AppError("Failed to send verification email. Please try again later.", 500);
+        }
+
+        return { email: user.email };
+    }
+
     static async verifyEmailWithLink(token) {
         const user = await User.findOne({ verificationToken: token });
         if (!user) throw new AppError("Link Expired or Already Verified", 400);

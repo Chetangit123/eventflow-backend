@@ -69,6 +69,7 @@
 // workers/ticketWorker.js
 
 const cron = require("node-cron");
+const mongoose = require("mongoose");
 const TicketBooking = require("../models/TicketBooking");
 const { generateTicketsForBooking } = require("../services/ticket.service");
 const sendMail = require("../utils/sendMail");
@@ -77,10 +78,13 @@ const ENVIRONMENT = require("../config/env");
 const MAX_RETRIES = 3;
 const ADMIN_EMAIL = ENVIRONMENT.ADMIN_EMAIL || "superadmin@yopmail.com";
 
-// Optional: consider bookings stuck in processing > 15 minutes as retryable again
 const PROCESSING_STALE_MINUTES = 15;
 
 cron.schedule("*/20 * * * * *", async () => {
+  if (mongoose.connection.readyState !== 1) {
+    return;
+  }
+
   console.log("🎯 Ticket Worker running...");
 
   try {
