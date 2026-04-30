@@ -20,14 +20,24 @@ console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
 const app = express();
 app.use('/webhook', webhookRoutes)
 app.use(helmet());
+const allowedOrigins = [
+    "https://taal.life",
+    "https://www.taal.life",
+    "https://admin.taal.life",
+    "http://localhost:3000",
+    "http://localhost:3001",
+];
+
+const isDevelopment = ENVIRONMENT.NODE_ENV !== "production";
+const localhostRegex = /^http:\/\/localhost:\d+$/;
+
 const corsOptions = {
-    origin: [
-        "https://taal.life",
-        "https://www.taal.life",
-        "https://admin.taal.life",
-        "http://localhost:3000",
-        "http://localhost:3001",
-    ],
+    origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        if (isDevelopment && localhostRegex.test(origin)) return callback(null, true);
+        return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     preflightContinue: false,
     optionsSuccessStatus: 204

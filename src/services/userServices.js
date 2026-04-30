@@ -17,26 +17,28 @@ class UserService {
             throw new AppError("Name, Email, Phone, and Password are required", 400);
         }
 
+        // Normalize email so lookups match the lowercased value persisted by the schema.
+        const normalizedEmail = String(email).toLowerCase().trim();
+        const normalizedPhone = String(phone).trim();
+
         // 2️⃣ Check if email OR phone already exists in one go
-        const existingUser = await new QueryBuilder(User)
-            .filter({ $or: [{ email }, { phone }] })
+        const existingUsers = await new QueryBuilder(User)
+            .filter({ $or: [{ email: normalizedEmail }, { phone: normalizedPhone }] })
             .exec();
 
-        if (existingUser.length > 0) {
-            if (existingUser[0].email === email) {
-                throw new AppError("Email already exists", 409);
-            }
-            if (existingUser[0].phone === phone) {
-                throw new AppError("Phone already exists", 409);
-            }
+        if (existingUsers.length > 0) {
+            const emailTaken = existingUsers.some(u => u.email === normalizedEmail);
+            const phoneTaken = existingUsers.some(u => u.phone === normalizedPhone);
+            if (emailTaken) throw new AppError("Email already exists", 409);
+            if (phoneTaken) throw new AppError("Phone already exists", 409);
         }
 
         // 3️⃣ Create user
         const user = await new QueryBuilder(User)
             .create({
                 name,
-                email,
-                phone,
+                email: normalizedEmail,
+                phone: normalizedPhone,
                 passwordHash: password // plain password; hashing handled by schema middleware
             })
             .exec();
@@ -64,7 +66,8 @@ class UserService {
     }
 
     static async resendVerificationEmail(email) {
-        const user = await User.findOne({ email });
+        const normalizedEmail = String(email).toLowerCase().trim();
+        const user = await User.findOne({ email: normalizedEmail });
         if (!user) throw new AppError("No account found with this email", 404);
         if (user.isVerified) throw new AppError("Email is already verified", 400);
         if (user.isBlocked) throw new AppError("Your account has been blocked", 401);
@@ -108,8 +111,9 @@ class UserService {
         return user;
     }
     static async forgetPassowrd(email) {
+        const normalizedEmail = String(email).toLowerCase().trim();
         let qb = new QueryBuilder(User);
-        let user = await qb.findOne({ email }).exec();
+        let user = await qb.findOne({ email: normalizedEmail }).exec();
         if (!user) throw new AppError("User not found", 404);
         const token = signToken(user._id, user.email);
         user.forgetPasswordToken = token;
