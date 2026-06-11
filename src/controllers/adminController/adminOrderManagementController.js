@@ -158,12 +158,7 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
         return next(new AppError('Order not found', 404));
     }
 
-    // 🚨 Check if already in same status
-    if (order.orderStatus === orderStatus) {
-        return next(new AppError('Order is already in this status', 400));
-    }
-
-    // Update order status
+    // Update order status (allowed even if unchanged, so shipment/notes can be edited)
     order.orderStatus = orderStatus;
 
     // Update timestamp only if null
@@ -193,5 +188,164 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
     await order.save();
 
     return successRes(res, 200, true, 'Order status updated successfully', order);
+});
+
+/**
+ * GET /api/v1/superadmin/order-details?orderId=
+ * Full order detail for admin: customer, address, items (with current images), timeline.
+ */
+exports.adminGetOrderById = catchAsync(async (req, res, next) => {
+    const { orderId } = req.query;
+    if (!isValidId(orderId)) return next(new AppError('Invalid orderId', 400));
+
+    const pipeline = [
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(orderId),
+                isDeleted: { $ne: true }
+            }
+        },
+        { $limit: 1 },
+
+        // customer
+        {
+            $lookup: {
+                from: 'users',
+                let: { uid: '$user' },
+                pipeline: [
+                    { $match: { $expr: { $eq: ['$_id', '$$uid'] } } },
+                    { $project: { _id: 1, name: 1, email: 1, phone: 1 } }
+                ],
+                as: 'customer'
+            }
+        },
+        { $addFields: { customer: { $arrayElemAt: ['$customer', 0] } } },
+
+        // address
+        {
+            $lookup: {
+                from: 'addresses',
+                localField: 'address',
+                foreignField: '_id',
+                as: 'addressData'
+            }
+        },
+        { $addFields: { address: { $arrayElemAt: ['$addressData', 0] } } },
+        { $project: { addressData: 0 } },
+
+        // per-item product/variant image lookup
+        { $unwind: { path: '$items', preserveNullAndEmptyArrays: true } },
+        {
+            $lookup: {
+                from: 'productsales',
+                let: { pid: '$items.product', vid: '$items.variantId' },
+                pipeline: [
+                    { $match: { $expr: { $eq: ['$_id', '$$pid'] } } },
+                    {
+                        $project: {
+                            slug: 1,
+                            title: 1,
+                            variant: {
+                                $first: {
+                                    $filter: {
+                                        input: '$variants',
+                                        as: 'v',
+                                        cond: { $eq: ['$$v._id', '$$vid'] }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    {
+                        $project: {
+                            slug: 1,
+                            title: 1,
+                            image: {
+                                $cond: [
+                                    { $gt: [{ $size: { $ifNull: ['$variant.images', []] } }, 0] },
+                                    { $arrayElemAt: ['$variant.images', 0] },
+                                    null
+                                ]
+                            }
+                        }
+                    }
+                ],
+                as: 'prod'
+            }
+        },
+        {
+            $addFields: {
+                'items.image': { $arrayElemAt: ['$prod.image', 0] },
+                'items.slug': { $arrayElemAt: ['$prod.slug', 0] }
+            }
+        },
+        { $project: { prod: 0 } },
+
+        // regroup items
+        {
+            $group: {
+                _id: '$_id',
+                doc: { $first: '$$ROOT' },
+                items: { $push: '$items' }
+            }
+        },
+        {
+            $replaceRoot: {
+                newRoot: {
+                    _id: '$_id',
+                    customer: '$doc.customer',
+                    address: '$doc.address',
+                    paymentMethod: '$doc.paymentMethod',
+                    paymentStatus: '$doc.paymentStatus',
+                    paymentGateway: '$doc.paymentGateway',
+                    orderStatus: '$doc.orderStatus',
+                    notes: '$doc.notes',
+                    shipment: '$doc.shipment',
+                    subtotal: '$doc.subtotal',
+                    shippingCharges: '$doc.shippingCharges',
+                    total: '$doc.total',
+                    currency: '$doc.currency',
+                    createdAt: '$doc.createdAt',
+                    updatedAt: '$doc.updatedAt',
+                    placedAt: '$doc.placedAt',
+                    packedAt: '$doc.packedAt',
+                    shippedAt: '$doc.shippedAt',
+                    deliveredAt: '$doc.deliveredAt',
+                    returnedAt: '$doc.returnedAt',
+                    cancelledAt: '$doc.cancelledAt',
+                    items: '$items'
+                }
+            }
+        },
+
+        // timeline
+        {
+            $addFields: {
+                timeline: [
+                    { label: 'Placed', at: '$createdAt', done: true },
+                    {
+                        label: 'Packed',
+                        at: '$packedAt',
+                        done: { $cond: [{ $ifNull: ['$packedAt', false] }, true, false] }
+                    },
+                    {
+                        label: 'Shipped',
+                        at: '$shippedAt',
+                        done: { $cond: [{ $ifNull: ['$shippedAt', false] }, true, false] }
+                    },
+                    {
+                        label: 'Delivered',
+                        at: '$deliveredAt',
+                        done: { $cond: [{ $ifNull: ['$deliveredAt', false] }, true, false] }
+                    }
+                ]
+            }
+        }
+    ];
+
+    const data = await SaleOrder.aggregate(pipeline);
+    if (!data || !data[0]) return next(new AppError('Order not found', 404));
+
+    return successRes(res, 200, true, 'Order fetched', data[0]);
 });
 

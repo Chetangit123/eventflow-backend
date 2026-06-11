@@ -75,6 +75,7 @@ router.put("/change-rent-product-status", protect('superadmin'), validateBody(pr
 
 /** ====================== Order Management================= */
 router.get('/get-order-list', protect('superadmin'), adminOrderManagementController.adminListOrders);
+router.get('/order-details', protect('superadmin'), adminOrderManagementController.adminGetOrderById);
 router.put('/update-order-status', protect('superadmin'), adminOrderManagementController.updateOrderStatus);
 
 
