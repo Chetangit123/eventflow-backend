@@ -69,6 +69,31 @@ exports.loginUser = catchAsync(async (req, res, next) => {
     return successRes(res, 200, true, "Login successful", { user, token });
 });
 
+exports.loginAdmin = catchAsync(async (req, res, next) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+        return next(new AppError("Please provide email and password", 400));
+    }
+
+    const qb = new QueryBuilder(User);
+    const user = await qb.findOne({ email }).select('+passwordHash').exec();
+    if (!user || !(await user.comparePassword(password))) {
+        return next(new AppError("Invalid email or password", 401));
+    }
+
+    const allowedRoles = ['superadmin', 'event_manager', 'gatekeeper'];
+    if (!allowedRoles.includes(user.role)) {
+        return next(new AppError("You are not authorized to access the admin panel", 403));
+    }
+
+    if (user.isBlocked) return next(new AppError("Your account has been blocked", 401));
+
+    const token = signToken(user._id, user.email, user.role);
+
+    return successRes(res, 200, true, "Login successful", { user, token });
+});
+
 exports.getUserProfile = catchAsync(async (req, res, next) => {
     const userId = req?.user?.id;
 

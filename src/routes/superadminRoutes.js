@@ -24,7 +24,7 @@ const { generateTicketFromAdminSideSchema } = require("../validations/eventValid
 
 //roles : superadmin, event_manager, gatekeeper
 
-router.post('/login-admin', authController.loginUser);
+router.post('/login-admin', authController.loginAdmin);
 router.get('/get-admin-profile', protect('superadmin', 'event_manager', 'gatekeeper'), authController.getUserProfile);
 router.put('/update-admin-profile', protect('superadmin', 'event_manager', 'gatekeeper'), authController.updateUserProfile);
 router.put('/change-password', protect('superadmin', 'event_manager', 'gatekeeper'), authController.changePassword);
@@ -109,5 +109,8 @@ router.get('/get-all-payments', protect('superadmin'), adminDisputeController.ge
 
 /**===================Ticket Bookings Dashboard=================== */
 router.get('/overall-tickets-from-users', protect('superadmin', 'event_manager'), adminDashboardController.getOverallTicketsFromUsers);
+
+/**===================Order Insights Dashboard=================== */
+router.get('/order-insights', protect('superadmin'), adminDashboardController.getOrderInsights);
 
 module.exports = router;

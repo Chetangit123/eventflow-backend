@@ -11,10 +11,20 @@ async function seedAdmin() {
         const adminEmail = ENVIRONMENT.ADMIN_EMAIL || "admin@yopmail.com";
         const adminPassword = ENVIRONMENT.ADMIN_PASSWORD || "Developer123#";
 
-        let admin = await User.findOne({ email: adminEmail });
+        let admin = await User.findOne({ email: adminEmail }).select('+passwordHash');
 
         if (admin) {
-            console.log("✅ Superadmin already exists");
+            // Sync existing admin to current env values (password/role/flags)
+            admin.passwordHash = adminPassword; // plain — model pre-save hook will hash
+            admin.role = "superadmin";
+            admin.isVerified = true;
+            admin.isBlocked = false;
+            admin.isDeleted = false;
+            await admin.save();
+
+            console.log("🔄 Superadmin already existed — credentials reset to env values");
+            console.log(`Email: ${adminEmail}`);
+            console.log(`Password: ${adminPassword}`);
         } else {
             admin = await User.create({
                 name: "Super Admin",
