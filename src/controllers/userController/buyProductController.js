@@ -750,7 +750,7 @@ exports.getMyOrders = catchAsync(async (req, res, next) => {
         sort = 'newest',
         q,
         orderStatus,
-        paymentStatus = 'paid',
+        paymentStatus,
         from,
         to,
         includeCancelled

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const { toInt, isValidId } = require("../../helper/productHelper");
 const SaleOrder = require("../../models/SaleOrder");
 const AppError = require("../../utils/AppError");
@@ -191,6 +192,6 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
 
     await order.save();
 
-    return successRes(res, 200, 'Order status updated successfully', order);
+    return successRes(res, 200, true, 'Order status updated successfully', order);
 });
 

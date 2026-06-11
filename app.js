@@ -13,7 +13,7 @@ const path = require("path");
 const ENVIRONMENT = require("./src/config/env");
 const webhookRoutes = require("./src/routes/webhookRoutes");
 //cron file
-require("./src/workers/ticketGenerator");
+// require("./src/workers/ticketGenerator");
 // require("./src/workers/cancelOrderCron");
 console.log(ENVIRONMENT.NODE_ENV, "NODEENV")
 
